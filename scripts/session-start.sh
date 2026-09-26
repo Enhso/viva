@@ -22,11 +22,11 @@ probe() {
     echo "reachable (HTTP $code)"
   fi
 }
-for host in integrate.api.nvidia.com api.groq.com generativelanguage.googleapis.com openrouter.ai api.typesafe.ai; do
+for host in integrate.api.nvidia.com generativelanguage.googleapis.com openrouter.ai api.typesafe.ai; do
   echo "- $host: $(probe "$host")"
 done
 
-for key in NVIDIA_API_KEY GROQ_API_KEY GEMINI_API_KEY OPENROUTER_API_KEY TYPESAFE_API_KEY; do
+for key in NVIDIA_API_KEY GEMINI_API_KEY OPENROUTER_API_KEY TYPESAFE_API_KEY; do
   if [ -n "${!key:-}" ]; then echo "- \$$key: set"; else echo "- \$$key: not set (fine only if stored as an API credential)"; fi
 done
 
