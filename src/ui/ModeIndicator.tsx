@@ -2,8 +2,10 @@ import type { VivaMode } from "../engine";
 import { useT } from "./strings";
 
 export interface ModeIndicatorProps {
-  mode: VivaMode;
-  /** live only: which provider and model served this viva (03 §5, ticket 06). */
+  /** "pending": before any viva runs, the strip claims no mode. */
+  mode: VivaMode | "pending";
+  /** live/cached: which provider and model served this viva (03 §5, ticket 06). fallback: the
+   *  model that judged the candidates when fallback came after a served filter call. */
   provider?: string;
   model?: string;
   /** fallback only: why every provider failed, or why fallback ran on purpose (03 §6). */
@@ -14,8 +16,12 @@ export interface ModeIndicatorProps {
 export function ModeIndicator({ mode, provider, model, reason }: ModeIndicatorProps) {
   const t = useT();
   const detail =
-    (mode === "live" || mode === "cached") && provider && model
-      ? t(`mode.${mode}.detailWithProvider`, { provider, model })
+    provider && model
+      ? mode === "fallback"
+        ? t("mode.fallback.detailAfterModel", { provider, model })
+        : mode === "pending"
+          ? t("mode.pending.detail")
+          : t(`mode.${mode}.detailWithProvider`, { provider, model })
       : t(`mode.${mode}.detail`);
   return (
     <div className="mode-strip" role="note" data-mode={mode}>

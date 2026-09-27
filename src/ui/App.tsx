@@ -14,7 +14,8 @@ import { SelectionScreen } from "./screens/SelectionScreen";
 import { LanguageContext, useT } from "./strings";
 
 type ModeInfo = {
-  mode: VivaMode;
+  /** "pending": no viva has run yet, so no mode can be claimed (09 §4). */
+  mode: VivaMode | "pending";
   provider?: string;
   model?: string;
   reason?: string;
@@ -22,7 +23,7 @@ type ModeInfo = {
    * Live only: functions that fell back inside a live viva (every loaded mutant was equivalent).
    * Their beats show the fallback strip, since fallback is labelled wherever it appears (09 §4).
    */
-  fallback?: { functionNames: string[]; reason: string };
+  fallback?: { reasonByFunction: Record<string, string> };
 };
 
 type State =
@@ -40,7 +41,7 @@ type Action =
   | { type: "next" }
   | { type: "restart" };
 
-const IDLE_MODE: ModeInfo = { mode: "fallback" };
+const IDLE_MODE: ModeInfo = { mode: "pending" };
 
 function reduce(state: State, action: Action): State {
   switch (action.type) {
@@ -68,9 +69,9 @@ function currentModeInfo(state: State): ModeInfo {
   const { modeInfo } = state;
   if (modeInfo.fallback && (state.screen === "beat" || state.screen === "reveal")) {
     const beat = state.viva.beats[state.screen === "beat" ? state.results.length : state.results.length - 1];
-    if (beat && modeInfo.fallback.functionNames.includes(beat.function.name)) {
-      return { mode: "fallback", reason: modeInfo.fallback.reason };
-    }
+    const reason = beat ? modeInfo.fallback.reasonByFunction[beat.function.name] : undefined;
+    // A model did judge this function's candidates; the strip names it rather than "no model ran".
+    if (reason) return { mode: "fallback", reason, provider: modeInfo.provider, model: modeInfo.model };
   }
   return modeInfo;
 }
@@ -217,7 +218,8 @@ async function runViva(
 
   const beats: Beat[] = [];
   let anyServed = false;
-  const fellBack: string[] = [];
+  // Why each function that fell back inside a served viva did so (09 §4: the strip says why).
+  const fellBack: Record<string, string> = {};
   for (const { fixture, fn, candidates } of entries) {
     if (outcome.mode === "live" || outcome.mode === "cached") {
       const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
@@ -234,9 +236,12 @@ async function runViva(
         anyServed = true;
         continue;
       }
-      // Every loaded mutant of this function turned out equivalent (03 §2 hands off surviving
-      // mutants only) — fall back for this function alone rather than leave it with nothing.
-      fellBack.push(fn.name);
+      // The model loaded nothing here, or every mutant it loaded turned out equivalent (03 §2 hands
+      // off surviving mutants only): fall back for this function alone rather than leave it empty.
+      fellBack[fn.name] =
+        loadedMutants.length === 0
+          ? "the model loaded no mutant for this function"
+          : "every mutant the model loaded for this function was equivalent: no input changed its output";
     }
     const fallbackViva = await runFallbackViva({ source: fixture.source, functionName: fixture.functionName }, runner);
     beats.push(...fallbackViva.beats);
@@ -246,17 +251,19 @@ async function runViva(
   // filter call covers every selected function, ticket 06), so a served viva's mode passes
   // straight through; only "every loaded mutant was equivalent" downgrades it to fallback.
   const mode: VivaMode = anyServed && (outcome.mode === "live" || outcome.mode === "cached") ? outcome.mode : "fallback";
-  const equivalentReason = "no loaded mutant of this function changed its output";
-  const reason = outcome.mode === "fallback" ? outcome.reason : equivalentReason;
+  const served = outcome.mode === "live" || outcome.mode === "cached" ? outcome : null;
   const modeInfo: ModeInfo =
-    mode !== "fallback" && (outcome.mode === "live" || outcome.mode === "cached")
+    mode !== "fallback" && served
       ? {
           mode,
-          provider: outcome.provider,
-          model: outcome.model,
-          fallback: fellBack.length > 0 ? { functionNames: fellBack, reason: equivalentReason } : undefined,
+          provider: served.provider,
+          model: served.model,
+          fallback: Object.keys(fellBack).length > 0 ? { reasonByFunction: fellBack } : undefined,
         }
-      : { mode: "fallback", reason };
+      : served
+        ? // The model ran, but no selected function kept a mutant: fallback, naming who judged.
+          { mode: "fallback", provider: served.provider, model: served.model, reason: Object.values(fellBack).join("; ") }
+        : { mode: "fallback", reason: outcome.mode === "fallback" ? outcome.reason : "" };
   // TODO(ticket 09 -> UI): surface per-mutant equivalent-drop reasons here once a screen wants them.
   return { viva: { mode, beats, drops: [] }, modeInfo };
 }

@@ -11,6 +11,10 @@ export const en = {
   "mode.live.detail": "A model chose which mutants to ask about.",
   "mode.live.detailWithProvider": "{provider} ({model}) chose which mutants to ask about.",
   "mode.fallback.reason": "Why: {reason}",
+  "mode.fallback.detailAfterModel":
+    "{provider} ({model}) judged the candidates, but this uses fallback: default edge-case inputs, the first mutant that changes the output, templated wording.",
+  "mode.pending.label": "Mode decided at start",
+  "mode.pending.detail": "Live, cached, or fallback is decided when the viva starts; this strip will say which.",
   "mode.cached.label": "Cached",
   "mode.cached.detail": "Replaying a saved model response for this code.",
   "mode.cached.detailWithProvider": "Replaying a saved response from {provider} ({model}) for this code.",
