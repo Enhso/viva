@@ -37,6 +37,6 @@ Tiny chat completion per model, `max_tokens` ≤ 200. Session hook reported all 
 
 Upshot for ticket 06: every link in the chain has at least one model that answers today. NVIDIA inference is no longer account-blocked across the board; pick models from `GET /v1/models` and probe, since per-model provisioning varies. Model ids have rotated since most training data: don't hardcode from memory.
 
-## Afternoon, real filter-call payload (~15:10)
+## Real filter-call payload (~13:20)
 
-Three-function request (42 candidates, ~4.9k prompt tokens), each link alone. Defaults (reasoning on) failed: NVIDIA `gpt-oss-20b` > 60 s (and > 120 s at `reasoning_effort: low`), OpenRouter nemotron > 60 s / no `content`. With reasoning off: NVIDIA `nemotron-3-super-120b-a12b` (`chat_template_kwargs.enable_thinking: false`) 40.8–52.8 s; OpenRouter `nemotron-3-super-120b-a12b:free` (`reasoning.enabled: false`) 27.8–44.2 s; Gemini `gemini-3.8-flash` default 36.9 s, with JSON mode + `thinkingLevel: low` 12.7 s, but 503 "high demand" on 3 of 5 calls this afternoon.
+Three-function request (42 candidates, ~4.9k prompt tokens), each link alone. Defaults (reasoning on) failed: NVIDIA `gpt-oss-20b` > 60 s (and > 120 s at `reasoning_effort: low`), OpenRouter nemotron > 60 s / no `content`. With reasoning off: NVIDIA `nemotron-3-super-120b-a12b` (`chat_template_kwargs.enable_thinking: false`) 40.8–52.8 s; OpenRouter `nemotron-3-super-120b-a12b:free` (`reasoning.enabled: false`) 27.8–44.2 s; Gemini `gemini-3.8-flash` default 36.9 s, with JSON mode + `thinkingLevel: low` 12.7 s, but 503 "high demand" on 3 of 5 calls today.
