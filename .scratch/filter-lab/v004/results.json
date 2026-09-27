@@ -1,14 +1,14 @@
 {
   "version": "v004",
   "compareVersion": null,
-  "provider": "nvidia",
-  "model": "nvidia/nemotron-3-super-120b-a12b",
-  "generatedAt": "2026-09-27T12:28:10.287Z",
+  "provider": "openrouter",
+  "model": "nvidia/nemotron-3-super-120b-a12b:free",
+  "generatedAt": "2026-09-27T12:49:58.501Z",
   "fixtures": [
     {
       "file": "sumRange",
-      "provider": "nvidia",
-      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
       "cached": false,
       "functions": [
         {
@@ -44,16 +44,16 @@
                 "before": "  let total = 0;",
                 "after": "  let total = 1;"
               },
-              "verdict": "rejected",
-              "label": null,
-              "reason": "Initializing total to 1 causes consistent overcount by 1; easily spotted by checking initial value or testing with zero-range input.",
+              "verdict": "loaded",
+              "label": "Off-by-one",
+              "reason": null,
               "checklist": {
                 "concept_domain": "Boundary Conditions",
-                "alternative_label": null,
-                "is_subtle": false
+                "alternative_label": "Initialization error",
+                "is_subtle": true
               },
-              "equivalent": null,
-              "distinguishingInputCount": null
+              "equivalent": false,
+              "distinguishingInputCount": 81
             },
             {
               "candidateId": "sumRange:off-by-one-literal:46-47:1",
@@ -63,16 +63,16 @@
                 "before": "  let total = 0;",
                 "after": "  let total = -1;"
               },
-              "verdict": "rejected",
-              "label": null,
-              "reason": "Initializing total to -1 causes consistent undercount by 1; easily spotted by checking initial value or testing with known sums.",
+              "verdict": "loaded",
+              "label": "Off-by-one",
+              "reason": null,
               "checklist": {
                 "concept_domain": "Boundary Conditions",
-                "alternative_label": null,
-                "is_subtle": false
+                "alternative_label": "Initialization error",
+                "is_subtle": true
               },
-              "equivalent": null,
-              "distinguishingInputCount": null
+              "equivalent": false,
+              "distinguishingInputCount": 81
             },
             {
               "candidateId": "sumRange:return-deletion:109-122:0",
@@ -82,16 +82,16 @@
                 "before": "  return total;",
                 "after": "  return;"
               },
-              "verdict": "loaded",
-              "label": "Missing return value",
-              "reason": null,
+              "verdict": "rejected",
+              "label": null,
+              "reason": "The mutation removes the return value, which is a trivial syntactic error easily caught by inspection or basic testing, not a subtle conceptual misconception.",
               "checklist": {
                 "concept_domain": "Control Flow",
-                "alternative_label": "Undefined return",
-                "is_subtle": true
+                "alternative_label": null,
+                "is_subtle": false
               },
-              "equivalent": false,
-              "distinguishingInputCount": 81
+              "equivalent": null,
+              "distinguishingInputCount": null
             },
             {
               "candidateId": "sumRange:loop-bound-change:80-83:0",
@@ -106,11 +106,11 @@
               "reason": null,
               "checklist": {
                 "concept_domain": "Control Flow",
-                "alternative_label": "Non-terminating loop",
+                "alternative_label": "Non-termination",
                 "is_subtle": true
               },
-              "equivalent": false,
-              "distinguishingInputCount": 36
+              "equivalent": true,
+              "distinguishingInputCount": 0
             }
           ]
         }
@@ -142,8 +142,8 @@
   ],
   "counts": {
     "candidates": 5,
-    "loaded": 3,
-    "rejected": 2,
-    "loadedButEquivalent": 0
+    "loaded": 4,
+    "rejected": 1,
+    "loadedButEquivalent": 1
   }
 }

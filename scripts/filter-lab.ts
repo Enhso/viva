@@ -101,8 +101,11 @@ function outOfScopeFiles(): string[] {
     .map((name) => join(dir, name));
 }
 
-function cacheKey(promptText: string, contractText: string, source: string, model: string): string {
-  return createHash("sha256").update(promptText).update("\0").update(contractText).update("\0").update(source).update("\0").update(model).digest("hex");
+// Keyed on the whole request (every function's source and every candidate id), not the fixture
+// source alone: a rule-engine change alters the candidate list without touching the fixture, and
+// a stale cached response would then answer for ids it never saw.
+function cacheKey(promptText: string, contractText: string, request: FilterRequest, model: string): string {
+  return createHash("sha256").update(promptText).update("\0").update(contractText).update("\0").update(JSON.stringify(request)).update("\0").update(model).digest("hex");
 }
 
 function cachePath(hash: string): string {
@@ -126,11 +129,10 @@ async function cachedFilterCall(
   prompt: FilterPrompt,
   chain: ProviderLink[],
   env: Record<string, string | undefined>,
-  fixtureSource: string,
 ): Promise<{ success: FilterCallSuccess; cached: boolean }> {
   const failures: ProviderFailure[] = [];
   for (const link of chain) {
-    const hash = cacheKey(prompt.promptText, prompt.contractText, fixtureSource, link.model);
+    const hash = cacheKey(prompt.promptText, prompt.contractText, request, link.model);
     const file = cachePath(hash);
     if (existsSync(file)) {
       const cached = JSON.parse(readFileSync(file, "utf8")) as CachedCall;
@@ -163,7 +165,8 @@ interface CandidateRow {
   candidateId: string;
   rule: string;
   diff: { line: number; before: string; after: string };
-  verdict: "loaded" | "rejected";
+  /** "missing": the response gave no verdict for this candidate (never reported as rejected). */
+  verdict: "loaded" | "rejected" | "missing";
   label: string | null;
   reason: string | null;
   checklist: Record<string, unknown>;
@@ -217,7 +220,7 @@ async function run(): Promise<void> {
 
     let outcome: { success: FilterCallSuccess; cached: boolean };
     try {
-      outcome = await cachedFilterCall(request, prompt, chain, process.env, source);
+      outcome = await cachedFilterCall(request, prompt, chain, process.env);
     } catch (error) {
       if (error instanceof ProviderChainError) {
         const hosts = error.failures.map((f) => `${f.provider} (${f.model}): ${f.reason}`).join("; ");
@@ -248,9 +251,7 @@ async function run(): Promise<void> {
         let distinguishingInputCount: number | null = null;
         if (loadedEntry) {
           loadedCount++;
-          // Ticket 09 (distinguish check + equivalent drop) hasn't landed; using the current
-          // answer-key path directly (engine's findDistinguishingInputs + sharedBattery) so the
-          // lab flags equivalents now rather than waiting on it (ticket 11's Comments/09 note).
+          // The answer-key path (ticket 09): shared battery, then the bounded targeted search.
           const answerKey = await findDistinguishingInputs(fn, candidate, battery, runner);
           distinguishingInputCount = answerKey.length;
           equivalent = answerKey.length === 0;
@@ -263,7 +264,7 @@ async function run(): Promise<void> {
           candidateId: candidate.id,
           rule: candidate.rule,
           diff: candidate.diff,
-          verdict: loadedEntry ? "loaded" : "rejected",
+          verdict: loadedEntry ? "loaded" : rejectedEntry ? "rejected" : "missing",
           label: loadedEntry?.label ?? null,
           reason: rejectedEntry?.reason ?? null,
           checklist: loadedEntry?.checklist ?? rejectedEntry?.checklist ?? {},

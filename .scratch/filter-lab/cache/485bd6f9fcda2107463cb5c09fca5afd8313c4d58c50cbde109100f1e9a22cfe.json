@@ -1,0 +1,60 @@
+{
+  "provider": "openrouter",
+  "model": "nvidia/nemotron-3-super-120b-a12b:free",
+  "result": {
+    "loaded": [
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:relational-flip:73-74:0",
+        "label": "Off-by-one",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": "Fencepost error",
+          "is_subtle": true
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:off-by-one-literal:46-47:0",
+        "label": "Off-by-one",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": "Initialization error",
+          "is_subtle": true
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:off-by-one-literal:46-47:1",
+        "label": "Off-by-one",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": "Initialization error",
+          "is_subtle": true
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:loop-bound-change:80-83:0",
+        "label": "Infinite loop",
+        "checklist": {
+          "concept_domain": "Control Flow",
+          "alternative_label": "Non-termination",
+          "is_subtle": true
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:return-deletion:109-122:0",
+        "reason": "The mutation removes the return value, which is a trivial syntactic error easily caught by inspection or basic testing, not a subtle conceptual misconception.",
+        "checklist": {
+          "concept_domain": "Control Flow",
+          "alternative_label": null,
+          "is_subtle": false
+        }
+      }
+    ]
+  }
+}
