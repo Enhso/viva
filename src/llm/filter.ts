@@ -107,7 +107,7 @@ export function parseFilterResponse(raw: string, request: FilterRequest): Filter
 }
 
 /**
- * Runs the chain in priority order (NVIDIA -> Gemini -> OpenRouter). A network failure, a
+ * Runs the chain in priority order (OpenRouter -> Gemini -> NVIDIA). A network failure, a
  * timeout, or a response that fails `parseFilterResponse` all count as that provider failing
  * and move on. A provider whose key env var is unset is still called, without an auth header:
  * in cloud sessions a proxy may inject credentials (CLAUDE.md); elsewhere it fails with the

@@ -1,5 +1,6 @@
-// The provider chain (03 §5, ticket 06 Ruling: NVIDIA -> Gemini -> OpenRouter; Groq dropped,
-// no key/host check at setup). Model ids probed live on 2026-09-27 (.scratch/providers.md);
+// The provider chain (03 §5). Order OpenRouter -> Gemini -> NVIDIA (Hatim, 2026-09-27, replacing
+// R5's NVIDIA-first order; Groq was dropped at setup: no key, no host check). Model ids probed live
+// on 2026-09-27 (.scratch/providers.md);
 // don't hardcode from memory — ids rotate.
 import type { ProviderFailure } from "./types.js";
 
@@ -116,9 +117,9 @@ async function callOpenRouter(prompt: string, apiKey: string | undefined): Promi
 }
 
 export const PROVIDER_CHAIN: ProviderLink[] = [
-  { provider: "nvidia", model: NVIDIA_MODEL, envVar: "NVIDIA_API_KEY", call: callNvidia },
-  { provider: "gemini", model: GEMINI_MODEL, envVar: "GEMINI_API_KEY", call: callGemini },
   { provider: "openrouter", model: OPENROUTER_MODEL, envVar: "OPENROUTER_API_KEY", call: callOpenRouter },
+  { provider: "gemini", model: GEMINI_MODEL, envVar: "GEMINI_API_KEY", call: callGemini },
+  { provider: "nvidia", model: NVIDIA_MODEL, envVar: "NVIDIA_API_KEY", call: callNvidia },
 ];
 
 export class ProviderChainError extends Error {
