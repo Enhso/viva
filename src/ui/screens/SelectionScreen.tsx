@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { estimateBeatCount, orderByComplexity, BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION } from "../../engine";
-import { DEMO_FIXTURES, REJECTED_FIXTURES, SCOPE_REASON_LABEL, type DemoFixture } from "../demo-fixtures";
-import { useT } from "../strings";
+import { DEMO_FIXTURES, REJECTED_FIXTURES, type DemoFixture } from "../demo-fixtures";
+import { LANGUAGE_NAME, useT, VISIBLE_LANGUAGES, type Language } from "../strings";
 
 interface OrderedFixture {
   fixture: DemoFixture;
@@ -28,7 +28,17 @@ function orderFixtures(fixtures: DemoFixture[]): OrderedFixture[] {
   });
 }
 
-export function SelectionScreen({ loading, onStart }: { loading: boolean; onStart: (selected: DemoFixture[]) => void }) {
+export function SelectionScreen({
+  loading,
+  onStart,
+  language,
+  onLanguageChange,
+}: {
+  loading: boolean;
+  onStart: (selected: DemoFixture[]) => void;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
+}) {
   const t = useT();
   const ordered = useMemo(() => orderFixtures(DEMO_FIXTURES), []);
   const total = ordered.length;
@@ -39,6 +49,24 @@ export function SelectionScreen({ loading, onStart }: { loading: boolean; onStar
   return (
     <section className="screen">
       <p className="lede">{t("app.tagline")}</p>
+
+      <fieldset className="language-picker">
+        <legend>{t("selection.language.heading")}</legend>
+        {VISIBLE_LANGUAGES.map((code) => (
+          <label key={code} className="language-picker__option">
+            <input
+              type="radio"
+              name="language"
+              value={code}
+              checked={language === code}
+              disabled={loading}
+              onChange={() => onLanguageChange(code)}
+            />
+            {LANGUAGE_NAME[code]}
+          </label>
+        ))}
+      </fieldset>
+
       <h2>{t("selection.heading")}</h2>
 
       <div className="selection-controls">
@@ -100,7 +128,7 @@ export function SelectionScreen({ loading, onStart }: { loading: boolean; onStar
               <li key={`${rejection.path}#${rejection.name}`} className="fixture fixture--rejected">
                 <code className="fixture__name">{rejection.name || rejection.path}</code>
                 <span className="fixture__path muted">{rejection.path}</span>
-                <span className="fixture__reason">{t("start.rejected.reason", { reason: SCOPE_REASON_LABEL[rejection.reason] })}</span>
+                <span className="fixture__reason">{t("start.rejected.reason", { reason: t(`scope.${rejection.reason}`) })}</span>
               </li>
             ))}
           </ul>

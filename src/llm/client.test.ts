@@ -136,7 +136,7 @@ describe("callFilterApiCached", () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       if (body.metaOnly) throw new Error("meta should not be called when force-fallback is set");
-      return jsonResponse({ mode: "fallback", reason: "forced by the demo switch" });
+      return jsonResponse({ mode: "fallback", reason: { code: "demo-switch" } });
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -145,13 +145,13 @@ describe("callFilterApiCached", () => {
     const forcedFetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body ?? "{}"));
       expect(body.metaOnly).toBeUndefined();
-      return jsonResponse({ mode: "fallback", reason: "forced by the demo switch" });
+      return jsonResponse({ mode: "fallback", reason: { code: "demo-switch" } });
     });
     vi.stubGlobal("fetch", forcedFetchMock);
 
     const outcome = await callFilterApiCached(request, { forceFallback: true });
 
-    expect(outcome).toEqual({ mode: "fallback", reason: "forced by the demo switch" });
+    expect(outcome).toEqual({ mode: "fallback", reason: { code: "demo-switch" } });
     expect(forcedFetchMock).toHaveBeenCalledTimes(1);
   });
 

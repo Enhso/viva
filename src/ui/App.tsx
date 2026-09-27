@@ -4,26 +4,27 @@ import { createWorkerRunner } from "../engine/sandbox/worker-runner";
 import { buildReport, gradeBeat, type BeatResult } from "../grading";
 import { callFilterApiCached } from "../llm/client";
 import { clearFilterCache } from "../llm/filter-cache-store";
-import type { FilterOutcome, FilterRequest } from "../llm/types";
+import type { FallbackReason, FilterOutcome, FilterRequest } from "../llm/types";
 import type { DemoFixture } from "./demo-fixtures";
 import { ModeIndicator } from "./ModeIndicator";
 import { BeatScreen } from "./screens/BeatScreen";
 import { ReportScreen } from "./screens/ReportScreen";
 import { RevealScreen } from "./screens/RevealScreen";
 import { SelectionScreen } from "./screens/SelectionScreen";
-import { LanguageContext, useT } from "./strings";
+import { LanguageContext, useT, type Language } from "./strings";
 
 type ModeInfo = {
   /** "pending": no viva has run yet, so no mode can be claimed (09 §4). */
   mode: VivaMode | "pending";
   provider?: string;
   model?: string;
-  reason?: string;
+  /** Fallback reason codes (ticket 24); the UI maps each through the string table. */
+  reason?: FallbackReason[];
   /**
    * Live only: functions that fell back inside a live viva (every loaded mutant was equivalent).
    * Their beats show the fallback strip, since fallback is labelled wherever it appears (09 §4).
    */
-  fallback?: { reasonByFunction: Record<string, string> };
+  fallback?: { reasonByFunction: Record<string, FallbackReason> };
 };
 
 type State =
@@ -71,20 +72,24 @@ function currentModeInfo(state: State): ModeInfo {
     const beat = state.viva.beats[state.screen === "beat" ? state.results.length : state.results.length - 1];
     const reason = beat ? modeInfo.fallback.reasonByFunction[beat.function.name] : undefined;
     // A model did judge this function's candidates; the strip names it rather than "no model ran".
-    if (reason) return { mode: "fallback", reason, provider: modeInfo.provider, model: modeInfo.model };
+    if (reason) return { mode: "fallback", reason: [reason], provider: modeInfo.provider, model: modeInfo.model };
   }
   return modeInfo;
 }
 
 export default function App() {
+  // The chosen language (ticket 24): picked on the selection screen, held through the viva and
+  // into the report — a single piece of state at the root, so every descendant (including the
+  // report, built once and handed down rather than re-read from context) sees the same choice.
+  const [language, setLanguage] = useState<Language>("en");
   return (
-    <LanguageContext.Provider value="en">
-      <VivaFlow />
+    <LanguageContext.Provider value={language}>
+      <VivaFlow language={language} onLanguageChange={setLanguage} />
     </LanguageContext.Provider>
   );
 }
 
-function VivaFlow() {
+function VivaFlow({ language, onLanguageChange }: { language: Language; onLanguageChange: (language: Language) => void }) {
   const t = useT();
   const [state, dispatch] = useReducer(reduce, { screen: "start", loading: false });
   // The demo switch (03 §6): forces fallback on purpose, so "kill the key mid-demo" reads as
@@ -138,7 +143,7 @@ function VivaFlow() {
               {t("start.clearCache")}
             </button>
             {cacheCleared && <span className="clear-cache__done">{t("start.clearCacheDone")}</span>}
-            <SelectionScreen loading={state.loading} onStart={start} />
+            <SelectionScreen loading={state.loading} onStart={start} language={language} onLanguageChange={onLanguageChange} />
           </>
         )}
         {state.screen === "beat" && (
@@ -156,7 +161,7 @@ function VivaFlow() {
           />
         )}
         {state.screen === "report" && (
-          <ReportScreen report={buildReport(state.results, state.viva.mode)} onRestart={() => dispatch({ type: "restart" })} />
+          <ReportScreen report={buildReport(state.results, state.viva.mode, language)} onRestart={() => dispatch({ type: "restart" })} />
         )}
         {state.screen === "error" && (
           <section className="screen">
@@ -212,14 +217,14 @@ async function runViva(
   const outcome = await callFilterApiCached(request, { forceFallback }).catch(
     (error): FilterOutcome => ({
       mode: "fallback",
-      reason: `could not reach the filter endpoint: ${error instanceof Error ? error.message : String(error)}`,
+      reason: { code: "filter-endpoint-unreachable", detail: error instanceof Error ? error.message : String(error) },
     }),
   );
 
   const beats: Beat[] = [];
   let anyServed = false;
   // Why each function that fell back inside a served viva did so (09 §4: the strip says why).
-  const fellBack: Record<string, string> = {};
+  const fellBack: Record<string, FallbackReason> = {};
   for (const { fixture, fn, candidates } of entries) {
     if (outcome.mode === "live" || outcome.mode === "cached") {
       const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
@@ -238,10 +243,7 @@ async function runViva(
       }
       // The model loaded nothing here, or every mutant it loaded turned out equivalent (03 §2 hands
       // off surviving mutants only): fall back for this function alone rather than leave it empty.
-      fellBack[fn.name] =
-        loadedMutants.length === 0
-          ? "the model loaded no mutant for this function"
-          : "every mutant the model loaded for this function was equivalent: no input changed its output";
+      fellBack[fn.name] = { code: loadedMutants.length === 0 ? "no-mutant-loaded" : "all-mutants-equivalent" };
     }
     const fallbackViva = await runFallbackViva({ source: fixture.source, functionName: fixture.functionName }, runner);
     beats.push(...fallbackViva.beats);
@@ -262,8 +264,8 @@ async function runViva(
         }
       : served
         ? // The model ran, but no selected function kept a mutant: fallback, naming who judged.
-          { mode: "fallback", provider: served.provider, model: served.model, reason: Object.values(fellBack).join("; ") }
-        : { mode: "fallback", reason: outcome.mode === "fallback" ? outcome.reason : "" };
+          { mode: "fallback", provider: served.provider, model: served.model, reason: Object.values(fellBack) }
+        : { mode: "fallback", reason: outcome.mode === "fallback" ? [outcome.reason] : [] };
   // TODO(ticket 09 -> UI): surface per-mutant equivalent-drop reasons here once a screen wants them.
   return { viva: { mode, beats, drops: [] }, modeInfo };
 }

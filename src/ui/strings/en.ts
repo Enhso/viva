@@ -31,6 +31,7 @@ export const en = {
   "start.rejected.heading": "Excluded from this corpus",
   "start.rejected.reason": "Excluded: {reason}",
 
+  "selection.language.heading": "Language",
   "selection.heading": "Choose your functions",
   "selection.n.label": "Functions to include: {n} of {total}",
   "selection.complexity": "Complexity score: {score}",
@@ -106,6 +107,23 @@ export const en = {
 
   "error.noMutant": "No mutant of {name} changed its output on the default inputs, so there is nothing to ask.",
   "error.failed": "The viva could not run: {message}",
+
+  // The scope check's rejection reasons (01 §6), shown on the selection screen's excluded list.
+  "scope.jsx": "JSX/React",
+  "scope.dom": "touches the DOM",
+  "scope.network": "touches the network",
+  "scope.parse-error": "could not be parsed",
+
+  // Fallback reason codes (ticket 24): the server and the UI both name why fallback happened by
+  // code, never by hardcoded sentence; a provider's own error text arrives separately, verbatim,
+  // in {detail} — never routed through this table.
+  "fallback.reason.demo-switch": "forced by the demo switch",
+  "fallback.reason.filter-prompt-missing": "the filter prompt hasn't been written yet",
+  "fallback.reason.provider-chain-failed": "every provider failed",
+  "fallback.reason.filter-endpoint-unreachable": "could not reach the filter endpoint",
+  "fallback.reason.no-mutant-loaded": "the model loaded no mutant for this function",
+  "fallback.reason.all-mutants-equivalent": "every mutant the model loaded for this function was equivalent: no input changed its output",
+  "fallback.reason.withDetail": "{reason}: {detail}",
 } as const;
 
 export type StringKey = keyof typeof en;

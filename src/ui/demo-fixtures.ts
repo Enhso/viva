@@ -25,12 +25,8 @@ export interface RejectedFixture {
   reason: ScopeRejectionReason;
 }
 
-export const SCOPE_REASON_LABEL: Record<ScopeRejectionReason, string> = {
-  jsx: "JSX/React",
-  dom: "touches the DOM",
-  network: "touches the network",
-  "parse-error": "could not be parsed",
-};
+// The English text for each reason (ticket 24) now lives in the string table under
+// "scope.<reason>" — SelectionScreen resolves it through `t`, never a hardcoded label here.
 
 function scanCorpus(): { eligible: DemoFixture[]; rejected: RejectedFixture[] } {
   const eligible: DemoFixture[] = [];
