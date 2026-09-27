@@ -14,8 +14,8 @@ export interface ModeIndicatorProps {
 export function ModeIndicator({ mode, provider, model, reason }: ModeIndicatorProps) {
   const t = useT();
   const detail =
-    mode === "live" && provider && model
-      ? t("mode.live.detailWithProvider", { provider, model })
+    (mode === "live" || mode === "cached") && provider && model
+      ? t(`mode.${mode}.detailWithProvider`, { provider, model })
       : t(`mode.${mode}.detail`);
   return (
     <div className="mode-strip" role="note" data-mode={mode}>

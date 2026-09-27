@@ -13,9 +13,12 @@ export const en = {
   "mode.fallback.reason": "Why: {reason}",
   "mode.cached.label": "Cached",
   "mode.cached.detail": "Replaying a saved model response for this code.",
+  "mode.cached.detailWithProvider": "Replaying a saved response from {provider} ({model}) for this code.",
 
   "start.heading": "Choose code to be examined on",
   "start.forceFallback": "Force fallback mode (demo switch)",
+  "start.clearCache": "Clear cached filter responses",
+  "start.clearCacheDone": "Cleared — the next viva will call a provider again.",
   "start.source.demo": "Demo fixtures",
   "start.source.demoNote": "Example functions bundled with Viva, not your own repository.",
   "start.begin": "Start viva",

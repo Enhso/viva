@@ -2,8 +2,9 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { extractFunctions, generateCandidateMutants, runFallbackViva, runLiveViva, type Beat, type LoadedMutant, type Viva, type VivaMode } from "../engine";
 import { createWorkerRunner } from "../engine/sandbox/worker-runner";
 import { buildReport, gradeBeat, type BeatResult } from "../grading";
-import { callFilterApi } from "../llm/client";
-import type { FilterApiResponse, FilterRequest } from "../llm/types";
+import { callFilterApiCached } from "../llm/client";
+import { clearFilterCache } from "../llm/filter-cache-store";
+import type { FilterOutcome, FilterRequest } from "../llm/types";
 import type { DemoFixture } from "./demo-fixtures";
 import { ModeIndicator } from "./ModeIndicator";
 import { BeatScreen } from "./screens/BeatScreen";
@@ -88,6 +89,10 @@ function VivaFlow() {
   // The demo switch (03 §6): forces fallback on purpose, so "kill the key mid-demo" reads as
   // one clearly labelled act, not an unexplained outage.
   const [forceFallback, setForceFallback] = useState(false);
+  // Rehearsals can clear the filter-response cache (ticket 14 checkbox); this flag just
+  // confirms the click happened, since a cleared cache otherwise has no visible effect until
+  // the next viva runs.
+  const [cacheCleared, setCacheCleared] = useState(false);
   const runner = useRef<ReturnType<typeof createWorkerRunner> | null>(null);
   useEffect(() => () => runner.current?.dispose(), []);
   useEffect(() => {
@@ -121,6 +126,17 @@ function VivaFlow() {
               <input type="checkbox" checked={forceFallback} onChange={(event) => setForceFallback(event.target.checked)} />
               {t("start.forceFallback")}
             </label>
+            <button
+              type="button"
+              className="clear-cache"
+              onClick={() => {
+                clearFilterCache();
+                setCacheCleared(true);
+              }}
+            >
+              {t("start.clearCache")}
+            </button>
+            {cacheCleared && <span className="clear-cache__done">{t("start.clearCacheDone")}</span>}
             <SelectionScreen loading={state.loading} onStart={start} />
           </>
         )}
@@ -192,18 +208,18 @@ async function runViva(
 
   // A network-level failure to reach the filter endpoint itself (not a provider failing) still
   // means the viva runs in fallback mode, labelled with why — never a hard error.
-  const outcome = await callFilterApi(request, { forceFallback }).catch(
-    (error): FilterApiResponse => ({
+  const outcome = await callFilterApiCached(request, { forceFallback }).catch(
+    (error): FilterOutcome => ({
       mode: "fallback",
       reason: `could not reach the filter endpoint: ${error instanceof Error ? error.message : String(error)}`,
     }),
   );
 
   const beats: Beat[] = [];
-  let anyLive = false;
+  let anyServed = false;
   const fellBack: string[] = [];
   for (const { fixture, fn, candidates } of entries) {
-    if (outcome.mode === "live") {
+    if (outcome.mode === "live" || outcome.mode === "cached") {
       const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
       const loadedMutants: LoadedMutant[] = loadedForFunction
         .map((loadedCandidate) => {
@@ -215,7 +231,7 @@ async function runViva(
       const liveViva = await runLiveViva({ source: fixture.source, functionName: fixture.functionName }, loadedMutants, runner);
       if (liveViva.beats.length > 0) {
         beats.push(...liveViva.beats);
-        anyLive = true;
+        anyServed = true;
         continue;
       }
       // Every loaded mutant of this function turned out equivalent (03 §2 hands off surviving
@@ -226,13 +242,16 @@ async function runViva(
     beats.push(...fallbackViva.beats);
   }
 
-  const mode: VivaMode = anyLive ? "live" : "fallback";
+  // Ticket 14: `outcome.mode` is already "live" | "cached" | "fallback" for the whole batch (one
+  // filter call covers every selected function, ticket 06), so a served viva's mode passes
+  // straight through; only "every loaded mutant was equivalent" downgrades it to fallback.
+  const mode: VivaMode = anyServed && (outcome.mode === "live" || outcome.mode === "cached") ? outcome.mode : "fallback";
   const equivalentReason = "no loaded mutant of this function changed its output";
   const reason = outcome.mode === "fallback" ? outcome.reason : equivalentReason;
   const modeInfo: ModeInfo =
-    mode === "live" && outcome.mode === "live"
+    mode !== "fallback" && (outcome.mode === "live" || outcome.mode === "cached")
       ? {
-          mode: "live",
+          mode,
           provider: outcome.provider,
           model: outcome.model,
           fallback: fellBack.length > 0 ? { functionNames: fellBack, reason: equivalentReason } : undefined,

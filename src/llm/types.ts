@@ -53,7 +53,32 @@ export interface FilterCallSuccess {
   result: FilterResult;
 }
 
+/**
+ * What a cache key must cover (ticket 14, brief §3.2): the prompt text, the output contract, and
+ * the provider chain's model ids — anything the server knows and the browser doesn't. The
+ * functions' sources and candidate lists are already in the `FilterRequest` the browser holds.
+ * `promptVersion` alone isn't enough (Hatim can edit a `vNNN.md` file in place without bumping
+ * its number), so `promptHash`/`contractHash` are hashes of the actual file text.
+ */
+export interface FilterCacheMeta {
+  promptVersion: string;
+  promptHash: string;
+  contractHash: string;
+  chainSignature: string;
+}
+
 /** What the browser gets back from `POST /api/filter`: either a live result, or a labelled fallback. */
 export type FilterApiResponse =
-  | ({ mode: "live" } & FilterCallSuccess)
-  | { mode: "fallback"; reason: string; failures?: ProviderFailure[] };
+  | ({ mode: "live"; cacheMeta?: FilterCacheMeta } & FilterCallSuccess)
+  | { mode: "fallback"; reason: string; failures?: ProviderFailure[]; cacheMeta?: FilterCacheMeta };
+
+/**
+ * `POST /api/filter { metaOnly: true }` (ticket 14): returns the cache-key ingredients without
+ * touching the provider chain, so the browser can check its cache — zero provider calls — before
+ * deciding whether to make a real filter call at all.
+ */
+export type FilterMetaApiResponse = { available: true; meta: FilterCacheMeta } | { available: false; reason: string };
+
+/** What a viva actually ran on: the server's own two modes, plus "cached" (ticket 14), which the
+ * server never returns — it's synthesized in the browser when a stored response is replayed. */
+export type FilterOutcome = FilterApiResponse | ({ mode: "cached" } & FilterCallSuccess);
