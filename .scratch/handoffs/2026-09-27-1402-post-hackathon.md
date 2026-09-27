@@ -1,6 +1,6 @@
 # Handoff: after the hackathon build
 
-The entry point for the next session, whether that's Hatim polishing the interface or an agent continuing the backlog. Written 2026-09-27 at 14:02 Casablanca on branch `claude/bold-mayer-1lnkcv` (draft PR [Enhso/viva#6](https://github.com/Enhso/viva/pull/6)); updated at the end of the session with the final merges.
+The entry point for the next session, whether that's Hatim polishing the interface or an agent continuing the backlog. Written 2026-09-27 at 14:02 Casablanca, finalized 14:18, on branch `claude/bold-mayer-1lnkcv` (draft PR [Enhso/viva#6](https://github.com/Enhso/viva/pull/6)); updated at the end of the session with the final merges.
 
 The session log with per-merge detail is `2026-09-27-1300-frontier-02-06.md`. Ticket 01 and decisions D1–D10 are in `2026-09-27-1148-ticket-01-fallback.md`.
 
@@ -131,9 +131,36 @@ The student predicts the mutant's output for each beat and states a confidence. 
   - New cloud-environment secrets reach new sessions only.
   - `tsc -b` writes `tsconfig.tsbuildinfo` (it's gitignored).
 
-## Final state
+## Final state (14:18 Casablanca)
 
-(Filled in at the end of the session.)
+- **Branch:** `claude/bold-mayer-1lnkcv`, pushed, 68 commits over `main` (`5d47c72`). [PR #6](https://github.com/Enhso/viva/pull/6) is marked ready for review.
+- **Checks:** `npm ci` + `npm test` gives 35 files and 270 tests; `npm run typecheck` and `npm run build` exit 0.
+- **Serverless functions:** `api/filter.ts`, `api/group-labels.ts`, `api/auth/start.ts` and `api/auth/callback.ts` each pass the `nodenext` ESM emit check.
+- **Tickets done:** 01–11, 13, 14, 16–19 and 22–24.
+- **Tickets open:**
+  - Hatim's: 12, 20, 21, 26.
+  - Plumbing: 15, 25, 27.
+  - Ticket 23's last box: verify on the production alias after the merge.
+- **What landed at the end:**
+  - **22 (label grouping):** Jev → Gemini `gemini-embedding-001` (cosine ≥ 0.85, an untuned placeholder) → exact text. Served by `api/group-labels.ts`, called once before the report renders.
+    - **Jev answered `401 authentication_error` on every call.** Check the TypeSafe key at `console.typesafe.ai/keys`. Until it's fixed, grouping runs on embeddings, and the real label pairs measured 0.64–0.79, so in practice nothing merges.
+  - **23 (GitHub OAuth):**
+    - `api/auth/start.ts` and `callback.ts` (callback at `/api/auth/callback`).
+    - The token is held in `sessionStorage`; the code is in `src/github/`, and ingestion feeds the selection screen beside the demo corpus.
+    - Env var names are assumed to be `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`; confirm them.
+    - **Security follow-up:** the OAuth `state` is sent but never verified, so there is no CSRF check (login CSRF). Fix: set a short-lived, signed HttpOnly cookie in `start.ts` and compare it in `callback.ts`.
+    - The plumber reached its turn limit after finishing; the orchestrator committed its staged work (`4bac045`) after typecheck and tests passed.
+  - **24 (English/French):**
+    - A language picker on the selection screen; `fr.ts` is hand-translated, "beat" → "étape" (Ruling). A French spot check is welcome.
+    - `da.ts` is registered and hidden: an English copy for ticket 26.
+    - `parity.test.ts` covers the visible languages.
+    - Fallback reasons are typed codes plus verbatim provider detail. Leftovers: `ProviderChainError`'s English preamble still reaches the `detail`, and the `metaOnly` reason is a bare string (never shown).
+  - `outputs.test.ts` property tests now use the fixed seed.
+- **Explain-diff reports:** PRs #1–#5 were sent to Hatim as files, not committed. They were checked with `html.parser` and `node --check`, and the scripts ran clean in jsdom, but nobody opened them in a real browser. Their "Defending it" sections disclose:
+  - PR #1 merged with `tsc -b` failing on `node:*` types; PR #2 fixed it.
+  - Vitest 5 needs Node ≥ 22.12, and nothing enforces it (consider `"engines"`, or an `.nvmrc` file).
+  - The boundary test only catches direct imports.
+  - The README and the GitHub repo description still say Viva "generates property-based tests" for students. It doesn't; property tests are internal engineering. Reword them before judging.
 
 ## Suggested skills
 
