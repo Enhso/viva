@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { extractFunctions, generateCandidateMutants, runFallbackViva, runLiveViva, type Beat, type LoadedMutant, type Viva, type VivaMode } from "../engine";
 import { createWorkerRunner } from "../engine/sandbox/worker-runner";
-import { buildReport, gradeBeat, type BeatResult } from "../grading";
-import { callFilterApiCached } from "../llm/client";
+import { buildReport, gradeBeat, type BeatResult, type LabelGroupingInput } from "../grading";
+import { callFilterApiCached, callGroupLabelsApi } from "../llm/client";
 import { clearFilterCache } from "../llm/filter-cache-store";
 import type { FilterOutcome, FilterRequest } from "../llm/types";
 import type { DemoFixture } from "./demo-fixtures";
@@ -100,6 +100,25 @@ function VivaFlow() {
     document.title = t("app.title");
   }, [t]);
 
+  // Ticket 22: the same-concept label-grouping call happens once, after the last beat, right
+  // before the report renders -- never per-beat, never inside src/grading (the report consumes
+  // this as plain data). Null until it resolves; buildReport then just groups by exact label
+  // text (its existing default), so the report never waits on this to render.
+  const [labelGrouping, setLabelGrouping] = useState<LabelGroupingInput | null>(null);
+  const groupedFor = useRef<BeatResult[] | null>(null);
+  useEffect(() => {
+    if (state.screen !== "report" || groupedFor.current === state.results) return;
+    groupedFor.current = state.results;
+    const labels = Array.from(new Set(state.results.map((result) => result.beat.mutant.taxonomyLabel).filter((label): label is string => label !== null)));
+    if (labels.length === 0) return; // fallback-only viva, or nothing labelled: exact-text default already covers it
+    callGroupLabelsApi(labels)
+      .then(setLabelGrouping)
+      .catch(() => {
+        // A network failure here just means the report renders ungrouped (exact-text) rather
+        // than a broken viva (07 §6 checklist: the report always renders).
+      });
+  }, [state]);
+
   async function start(fixtures: DemoFixture[]) {
     dispatch({ type: "load" });
     runner.current ??= createWorkerRunner();
@@ -156,7 +175,14 @@ function VivaFlow() {
           />
         )}
         {state.screen === "report" && (
-          <ReportScreen report={buildReport(state.results, state.viva.mode)} onRestart={() => dispatch({ type: "restart" })} />
+          <ReportScreen
+            report={buildReport(state.results, state.viva.mode, labelGrouping)}
+            onRestart={() => {
+              setLabelGrouping(null);
+              groupedFor.current = null;
+              dispatch({ type: "restart" });
+            }}
+          />
         )}
         {state.screen === "error" && (
           <section className="screen">

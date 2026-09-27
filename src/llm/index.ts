@@ -11,4 +11,14 @@ export {
   runFilterCallWithTriage,
   TRIAGE_TOKEN_THRESHOLD,
 } from "./triage";
+export { runLabelGrouping, type LabelGroupingEnv } from "./grouping";
+export {
+  exactTextGroups,
+  pairKey,
+  pairsToGroups,
+  uniquePairs,
+  type LabelGroupingMechanism,
+  type LabelGroupingResult,
+  type UnorderedPair,
+} from "./label-grouping";
 export type * from "./types";

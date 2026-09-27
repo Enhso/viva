@@ -107,4 +107,32 @@ describe("buildReport", () => {
       expect(bucket.groups.every((g) => g.connectingLine === null)).toBe(true);
     }
   });
+
+  // Ticket 22: buildReport takes the same-concept grouping result as plain data (a label -> group
+  // key map computed in src/llm/, behind the serverless function) and merges groups by it on top
+  // of the existing exact-text grouping, rather than grading importing anything from src/llm.
+  it("merges groups whose labels share a group key from the label-grouping result, spanning both labels' occurrences in the connecting line", () => {
+    const grouping = {
+      mechanism: "jev" as const,
+      groupKeyByLabel: { "off-by-one boundary": "off-by-one boundary", "sign flip": "off-by-one boundary" },
+    };
+    const report = buildReport(results(), "live", grouping);
+    const confidentlyWrong = report.buckets.find((b) => b.bucket === "confidently-wrong")!;
+    expect(confidentlyWrong.groups).toHaveLength(1);
+    const merged = confidentlyWrong.groups[0];
+    expect(merged.label).toBe("off-by-one boundary");
+    expect(merged.entries).toHaveLength(3); // 2 off-by-one-boundary entries + 1 sign-flip entry
+    // 3 of the merged group's 5 total occurrences (3 off-by-one-boundary + 2 sign-flip) landed here.
+    expect(merged.connectingLine).toBe("You got 3 of 5 off-by-one boundary questions wrong with over 70% confidence.");
+  });
+
+  it("defaults to exact-text grouping (unmerged) when no label-grouping result is given, and records that on the report", () => {
+    const report = buildReport(results(), "live");
+    expect(report.labelGrouping).toBeNull();
+  });
+
+  it("records the label-grouping result's mechanism and provider on the report, for the disclosure", () => {
+    const report = buildReport(results(), "live", { mechanism: "embedding", provider: "gemini", groupKeyByLabel: {} });
+    expect(report.labelGrouping).toEqual({ mechanism: "embedding", provider: "gemini" });
+  });
 });
