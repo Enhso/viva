@@ -118,3 +118,15 @@ describe("generateCandidateMutants: candidate identity", () => {
     expect(new Set(first).size).toBe(first.length);
   });
 });
+
+describe("generateCandidateMutants: candidate ids", () => {
+  // The filter call's model must echo every id verbatim (ticket 06's contract), so an id carries
+  // no source text: function name, rule, offsets, and an ordinal for rewrites of the same node.
+  it("are short, contain no source text, and stay unique when one node yields two rewrites", () => {
+    const fn = only('function f(s) {\n  if (s === "a b") {\n    return s.length > 3;\n  }\n  return false;\n}');
+    const ids = generateCandidateMutants(fn).map((c) => c.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) expect(id).toMatch(/^f:[a-z-]+:\d+-\d+:\d+$/);
+  });
+});

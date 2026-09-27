@@ -52,7 +52,13 @@ export function generateCandidateMutants(fn: EligibleFunction): CandidateMutant[
 
   const priority = (rule: MutationRule) => RULE_PRIORITY.indexOf(rule);
   const ordered = [...edits].sort((a, b) => priority(a.rule) - priority(b.rule) || a.start - b.start);
-  return ordered.map((edit) => rewrite(fn, edit));
+  const seen = new Map<string, number>();
+  return ordered.map((edit) => {
+    const node = `${fn.name}:${edit.rule}:${edit.start}-${edit.end}`;
+    const ordinal = seen.get(node) ?? 0;
+    seen.set(node, ordinal + 1);
+    return rewrite(fn, edit, `${node}:${ordinal}`);
+  });
 }
 
 function editsForNode(node: SyntaxNode, source: string, tokens: Token[]): Edit[] {
@@ -155,12 +161,15 @@ function negationInsertionEdits(node: SyntaxNode, source: string): Edit[] {
   return [{ rule: "negation-insertion", start: test.start, end: test.end, replacement: `!(${testText})` }];
 }
 
-function rewrite(fn: EligibleFunction, edit: Edit): CandidateMutant {
+// The id carries no source text: the filter call's model echoes it verbatim (ticket 06), and a
+// rewrite like `!(s === "a b")` invites mangled quotes. The ordinal separates two rewrites of one
+// node (off-by-one's n+1 and n-1); the stable sort above keeps it stable across runs.
+function rewrite(fn: EligibleFunction, edit: Edit, id: string): CandidateMutant {
   const { rule, start, end, replacement } = edit;
   const source = fn.source.slice(0, start) + replacement + fn.source.slice(end);
   const line = fn.source.slice(0, start).split("\n").length;
   return {
-    id: `${fn.name}:${rule}:${start}:${end}:${replacement}`,
+    id,
     functionName: fn.name,
     rule,
     rewrite: { from: fn.source.slice(start, end), to: replacement },
