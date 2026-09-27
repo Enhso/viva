@@ -1,8 +1,8 @@
 import { extractFunctions } from "./extract";
-import { findDistinguishingInputs } from "./fallback";
+import { EQUIVALENT_DROP_REASON, findDistinguishingInputs } from "./fallback";
 import { sharedBattery } from "./battery";
 import type { SandboxRunner } from "./sandbox/types";
-import type { Beat, CandidateMutant, SurvivingMutant, Viva } from "./types";
+import type { Beat, CandidateMutant, EquivalentDrop, SurvivingMutant, Viva } from "./types";
 
 export interface LiveVivaRequest {
   source: string;
@@ -34,11 +34,15 @@ export async function runLiveViva(
 
   const battery = sharedBattery(fn);
   const beats: Beat[] = [];
+  const drops: EquivalentDrop[] = [];
   for (const { candidate, taxonomyLabel } of loadedMutants) {
     const answerKey = await findDistinguishingInputs(fn, candidate, battery, runner);
-    if (answerKey.length === 0) continue;
+    if (answerKey.length === 0) {
+      drops.push({ mutant: candidate, reason: EQUIVALENT_DROP_REASON });
+      continue;
+    }
     const mutant: SurvivingMutant = { ...candidate, answerKey, taxonomyLabel };
     answerKey.forEach((entry, index) => beats.push({ id: `${mutant.id}#${index}`, function: fn, mutant, ...entry }));
   }
-  return { mode: "live", beats };
+  return { mode: "live", beats, drops };
 }
