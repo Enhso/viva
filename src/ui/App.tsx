@@ -139,7 +139,7 @@ function VivaFlow() {
           />
         )}
         {state.screen === "report" && (
-          <ReportScreen report={buildReport(state.results)} onRestart={() => dispatch({ type: "restart" })} />
+          <ReportScreen report={buildReport(state.results, state.viva.mode)} onRestart={() => dispatch({ type: "restart" })} />
         )}
         {state.screen === "error" && (
           <section className="screen">

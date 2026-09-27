@@ -348,12 +348,38 @@ button:disabled {
   font-family: var(--font-code);
   font-size: 1rem;
 }
-.entry__no-label {
-  margin: var(--space-1) 0 0;
-  font-size: 0.85rem;
-}
 .entry__fact {
   margin: var(--space-2) 0 0;
+}
+.report-summary {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-3);
+}
+.report-summary__pointer {
+  font-weight: 600;
+}
+.label-group {
+  margin: var(--space-4) 0;
+}
+.label-group__label {
+  margin: 0 0 var(--space-2);
+}
+.label-group__connecting-line {
+  margin: 0 0 var(--space-2);
+}
+.label-group .entry {
+  margin-bottom: var(--space-2);
+}
+/* Tier 2 placeholder treatment (07 §4): ticket 21 (hatim) picks the real one. Dashed underline
+   plus a marker keeps it structurally distinct from Tier 1's plain text in the meantime. */
+.tier2 {
+  border-bottom: 2px dashed var(--mode-cached);
+  cursor: help;
+}
+.tier2__marker {
+  color: var(--mode-cached);
+  margin-left: 0.1em;
 }
 
 .error {
