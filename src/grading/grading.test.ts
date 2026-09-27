@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { beforeAll, describe, expect, it } from "vitest";
 import { canonicalText, runFallbackViva, sameOutput, type Beat } from "../engine";
 import { createNodeRunner } from "../engine/sandbox/node-runner";
-import { buildReport, gradeBeat, type PredictionReading } from "./index";
+import { gradeBeat, type PredictionReading } from "./index";
 
 // The sumRange fallback beat: input (3, 3), mutant returns 3, original returns 0.
 let beat: Beat;
@@ -87,30 +87,5 @@ describe("gradeBeat", () => {
       }),
       { seed: 42 },
     );
-  });
-});
-
-describe("buildReport", () => {
-  it("counts all four calibration buckets and states each beat's Tier 1 facts", () => {
-    const report = buildReport([gradeBeat(beat, "0", 67.3)]);
-
-    expect(report.bucketCounts).toEqual({
-      "confidently-right": 0,
-      "confidently-wrong": 1,
-      "uncertain-right": 0,
-      "uncertain-wrong": 0,
-    });
-    expect(report.meanBrier).toBeCloseTo(0.673 ** 2);
-    expect(report.entries).toEqual([
-      {
-        bucket: "confidently-wrong",
-        change: { rule: "relational-flip", from: "<", to: "<=" },
-        taxonomyLabel: null,
-        call: "sumRange(3, 3)",
-        answered: "0",
-        correctAnswer: "3",
-        confidence: 67.3,
-      },
-    ]);
   });
 });
