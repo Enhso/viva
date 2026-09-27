@@ -5,7 +5,9 @@ import react from "@vitejs/plugin-react";
 /**
  * Dev server only: serves the `api/*.ts` Vercel functions, so `npm run dev` can run a live viva
  * locally, with provider keys read from this process's environment. Deployed builds use Vercel's
- * own runtime; this adapter covers only the `status().json()` surface the handlers use.
+ * own runtime; this adapter covers the `status().json()`/`.setHeader()`/`.end()` surface the
+ * handlers use. Extended (ticket 23) to resolve one nested path segment too — `/api/auth/callback`
+ * and `/api/auth/start` — since the OAuth callback path is nested by name, not just one level.
  */
 function vercelApiInDev(): Plugin {
   return {
@@ -13,8 +15,9 @@ function vercelApiInDev(): Plugin {
     apply: "serve",
     configureServer(server) {
       server.middlewares.use("/api", async (req, res, next) => {
-        const name = (req.url ?? "").split("?")[0].replace(/^\//, "");
-        if (!/^[a-z-]+$/.test(name)) return next();
+        const [rawPath, query] = (req.url ?? "").split("?");
+        const name = rawPath.replace(/^\//, "");
+        if (!/^[a-z-]+(\/[a-z-]+)?$/.test(name)) return next();
         let handler: (req: unknown, res: unknown) => Promise<void> | void;
         try {
           handler = (await server.ssrLoadModule(`/api/${name}.ts`)).default;
@@ -29,13 +32,20 @@ function vercelApiInDev(): Plugin {
             res.statusCode = code;
             return response;
           },
+          setHeader(headerName: string, value: string) {
+            res.setHeader(headerName, value);
+            return response;
+          },
           json(payload: unknown) {
             res.setHeader("Content-Type", "application/json");
             res.end(JSON.stringify(payload));
           },
+          end(payload?: string) {
+            res.end(payload);
+          },
         };
         try {
-          await handler({ method: req.method, body: body || undefined }, response);
+          await handler({ method: req.method, url: query ? `/${name}?${query}` : `/${name}`, body: body || undefined }, response);
         } catch (error) {
           res.statusCode = 500;
           res.end(String(error));
@@ -48,6 +58,6 @@ function vercelApiInDev(): Plugin {
 export default defineConfig({
   plugins: [react(), vercelApiInDev()],
   test: {
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "api/**/*.test.ts"],
   },
 });

@@ -5,7 +5,9 @@ import { buildReport, gradeBeat, type BeatResult, type LabelGroupingInput } from
 import { callFilterApiCached, callGroupLabelsApi } from "../llm/client";
 import { clearFilterCache } from "../llm/filter-cache-store";
 import type { FilterOutcome, FilterRequest } from "../llm/types";
+import type { IngestResult } from "../github/ingest";
 import type { DemoFixture } from "./demo-fixtures";
+import { GitHubConnect, type GithubRepo } from "./GitHubConnect";
 import { ModeIndicator } from "./ModeIndicator";
 import { BeatScreen } from "./screens/BeatScreen";
 import { ReportScreen } from "./screens/ReportScreen";
@@ -42,6 +44,18 @@ type Action =
   | { type: "restart" };
 
 const IDLE_MODE: ModeInfo = { mode: "pending" };
+
+// Ticket 23: a GitHub repo's ingested functions are the same shape as a DemoFixture, and its
+// rejections just need the reason codes turned into the same human-readable label the demo
+// corpus already uses (extended with the one reason unique to a fetched tree: a skipped
+// dependency/build-output/minified/non-.js path, which never applies to the bundled fixtures).
+const GITHUB_REASON_LABEL: Record<string, string> = {
+  jsx: "JSX/React",
+  dom: "touches the DOM",
+  network: "touches the network",
+  "parse-error": "could not be parsed",
+  "not-eligible-file": "dependency, build output, or not a .js file",
+};
 
 function reduce(state: State, action: Action): State {
   switch (action.type) {
@@ -94,6 +108,9 @@ function VivaFlow() {
   // confirms the click happened, since a cleared cache otherwise has no visible effect until
   // the next viva runs.
   const [cacheCleared, setCacheCleared] = useState(false);
+  // Ticket 23: the demo corpus stays available alongside a connected repo — this is which one
+  // the selection screen is currently showing, not an exclusive "mode" the student locks into.
+  const [githubSource, setGithubSource] = useState<{ repo: GithubRepo; result: IngestResult } | null>(null);
   const runner = useRef<ReturnType<typeof createWorkerRunner> | null>(null);
   useEffect(() => () => runner.current?.dispose(), []);
   useEffect(() => {
@@ -157,7 +174,19 @@ function VivaFlow() {
               {t("start.clearCache")}
             </button>
             {cacheCleared && <span className="clear-cache__done">{t("start.clearCacheDone")}</span>}
-            <SelectionScreen loading={state.loading} onStart={start} />
+            <GitHubConnect onIngested={(repo, result) => setGithubSource({ repo, result })} />
+            {githubSource && githubSource.result.eligible.length === 0 && (
+              <p className="muted">{t("github.noEligible", { repo: githubSource.repo.fullName })}</p>
+            )}
+            <SelectionScreen
+              key={githubSource ? githubSource.repo.fullName : "demo"}
+              loading={state.loading}
+              onStart={start}
+              fixtures={githubSource?.result.eligible}
+              rejected={githubSource?.result.rejected.map((r) => ({ path: r.path, name: r.name, reason: GITHUB_REASON_LABEL[r.reason] ?? r.reason }))}
+              sourceLabel={githubSource ? t("start.source.github", { repo: githubSource.repo.fullName }) : undefined}
+              sourceNote={githubSource ? t("start.source.githubNote", { branch: githubSource.repo.defaultBranch }) : undefined}
+            />
           </>
         )}
         {state.screen === "beat" && (
