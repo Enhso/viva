@@ -12,7 +12,7 @@ What remains after the 2026-09-27 session, most urgent first. The context behind
   - Confirm the env var names are `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`; rename in `src/github/oauth.ts` otherwise.
 - [ ] **Seed the demo cache.** Run one successful live viva on the demo machine's browser. A replay then shows "Cached" and makes zero provider calls if every provider is down. Don't press "Clear cached filter responses" after that.
 - [ ] **Check Node on the demo laptop.** It must be at least 22.12 (`.nvmrc`; Vitest 5 needs it).
-- [ ] **Reword the README and the GitHub repo description.** Both say Viva "generates property-based tests" for students. It doesn't; property tests are internal engineering.
+- [ ] **Reword the GitHub repo description** (Settings → About). It still says Viva "generates property-based tests" for students; the README was rewritten on 2026-09-27 and says what Viva does.
 - [ ] **Fix the TypeSafe key.** It returns `401 authentication_error` (`console.typesafe.ai/keys`). Until then, label grouping runs on Gemini embeddings, which merged nothing on real label pairs (0.64–0.79 against the 0.85 threshold).
 - [ ] *Optional:* **Filter prompt (ticket 12).** On a real three-function request, v004 loaded 37–38 of 42 candidates via the Nemotron models but only 5–6 via Gemini. `npm run filter-lab` compares versions.
 

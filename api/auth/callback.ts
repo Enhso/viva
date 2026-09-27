@@ -5,6 +5,7 @@
 // redirect lands on). The client secret itself never reaches the response.
 // Relative imports carry `.js` (see api/filter.ts's note; Node ESM on Vercel).
 import {
+  callbackUrl,
   exchangeCodeForToken,
   GITHUB_CLIENT_ID_ENV_VAR,
   GITHUB_CLIENT_SECRET_ENV_VAR,
@@ -14,6 +15,7 @@ import { STORAGE_KEY } from "../../src/github/token-store.js";
 
 interface VercelRequest {
   url?: string;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 interface VercelResponse {
@@ -72,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const redirectUri = `${url.origin}/api/auth/callback`;
+  const redirectUri = callbackUrl(req);
 
   try {
     const { token, scope } = await exchangeCodeForToken({ code, clientId, clientSecret, redirectUri });

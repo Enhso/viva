@@ -3,10 +3,11 @@
 // itself) never has to live in the frontend bundle — this function reads it from the server-only
 // env var and redirects on to GitHub with it.
 // Relative imports carry `.js` (see api/filter.ts's note; Node ESM on Vercel).
-import { buildAuthorizeUrl, GITHUB_CLIENT_ID_ENV_VAR, type GithubScope } from "../../src/github/oauth.js";
+import { buildAuthorizeUrl, callbackUrl, GITHUB_CLIENT_ID_ENV_VAR, type GithubScope } from "../../src/github/oauth.js";
 
 interface VercelRequest {
   url?: string;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 interface VercelResponse {
@@ -31,7 +32,7 @@ export default function handler(req: VercelRequest, res: VercelResponse): void {
     return;
   }
 
-  const redirectUri = `${url.origin}/api/auth/callback`;
+  const redirectUri = callbackUrl(req);
   // No server-side session to stash a CSRF nonce in (01 §1: no persistent state) — `state`
   // carries a random value plus the requested scope, and the callback checks only that GitHub
   // echoed the same value back unchanged. Ruling: this is boilerplate hygiene, not a full

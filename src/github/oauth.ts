@@ -52,3 +52,24 @@ export async function exchangeCodeForToken(
   const scope: GithubScope = grantedScopes.includes("repo") ? "repo" : "public_repo";
   return { token: data.access_token, scope };
 }
+
+type HeaderValue = string | string[] | undefined;
+
+function header(headers: Record<string, HeaderValue> | undefined, name: string): string | undefined {
+  const value = headers?.[name];
+  return (Array.isArray(value) ? value[0] : value)?.split(",")[0].trim() || undefined;
+}
+
+/**
+ * The OAuth callback URL for the host this request arrived on. `req.url` is only a path on Vercel
+ * and in the dev adapter, so the origin comes from the proxy's `x-forwarded-*` headers, else the
+ * Host header (http for localhost). GitHub rejects any redirect_uri that doesn't match the OAuth
+ * App's registered callback, so a spoofed host can't redirect a code elsewhere.
+ */
+export function callbackUrl(req: { url?: string; headers?: Record<string, HeaderValue> }): string {
+  const host = header(req.headers, "x-forwarded-host") ?? header(req.headers, "host");
+  if (!host) return new URL("/api/auth/callback", new URL(req.url ?? "/", "http://localhost")).toString();
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+  const proto = header(req.headers, "x-forwarded-proto") ?? (local ? "http" : "https");
+  return `${proto}://${host}/api/auth/callback`;
+}

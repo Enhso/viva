@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAuthorizeUrl, exchangeCodeForToken, OAuthExchangeError } from "./oauth";
+import {
+  callbackUrl, buildAuthorizeUrl, exchangeCodeForToken, OAuthExchangeError } from "./oauth";
 
 describe("buildAuthorizeUrl", () => {
   it("carries the client id, redirect, scope, and state through to GitHub's authorize URL", () => {
@@ -55,5 +56,19 @@ describe("exchangeCodeForToken", () => {
     await expect(
       exchangeCodeForToken({ code: "c", clientId: "id", clientSecret: "secret", redirectUri: "https://viva.example/api/auth/callback" }, fetchStub),
     ).rejects.toThrow(/github\.com.*500/);
+  });
+});
+
+// On Vercel (and in the dev adapter) `req.url` is only a path, so an origin taken from it was
+// `http://localhost`, a redirect_uri GitHub rejects. The origin comes from the proxy's headers.
+describe("callbackUrl", () => {
+  it("uses the forwarded host and protocol a deployment receives", () => {
+    const headers = { host: "internal", "x-forwarded-host": "viva-vnst1.vercel.app", "x-forwarded-proto": "https" };
+    expect(callbackUrl({ url: "/api/auth/start?scope=repo", headers })).toBe("https://viva-vnst1.vercel.app/api/auth/callback");
+  });
+
+  it("falls back to the Host header, over http for a local dev server", () => {
+    expect(callbackUrl({ url: "/api/auth/start", headers: { host: "127.0.0.1:5173" } })).toBe("http://127.0.0.1:5173/api/auth/callback");
+    expect(callbackUrl({ url: "/api/auth/start", headers: { host: "localhost:5173" } })).toBe("http://localhost:5173/api/auth/callback");
   });
 });

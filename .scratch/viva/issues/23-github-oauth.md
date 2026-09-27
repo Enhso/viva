@@ -98,3 +98,5 @@ to the main session after merge to `main` — OAuth only works there.
 - Left for whoever wires ticket 09's disclosure doc: `09-disclosure.md` §5 already has the GitHub
   OAuth scope note drafted; nothing in this ticket's code needs it, since disclosure is a separate
   written document, not an in-product panel (per that doc's own header).
+
+Fix (orchestrator, while writing the README): `redirect_uri` was built from `new URL(req.url, "http://localhost").origin`, but `req.url` is only a path on Vercel and in the dev adapter, so every flow would have sent `http://localhost/api/auth/callback` and GitHub would reject it against the registered callback. `callbackUrl(req)` (`src/github/oauth.ts`, tested) builds it from `x-forwarded-host`/`x-forwarded-proto`, else `Host` (http for localhost); the dev adapter now passes request headers. The OAuth App's callback URL must be `https://<production alias>/api/auth/callback`.
