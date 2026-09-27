@@ -7,3 +7,4 @@ dist-ssr
 .env.*
 .playwright-mcp
 *.tsbuildinfo
+.claude/worktrees/
