@@ -45,7 +45,7 @@ function vercelApiInDev(): Plugin {
           },
         };
         try {
-          await handler({ method: req.method, url: query ? `/${name}?${query}` : `/${name}`, body: body || undefined }, response);
+          await handler({ method: req.method, url: query ? `/${name}?${query}` : `/${name}`, headers: req.headers, body: body || undefined }, response);
         } catch (error) {
           res.statusCode = 500;
           res.end(String(error));
