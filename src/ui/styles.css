@@ -1,0 +1,311 @@
+/* All styling for Viva. Plain CSS on the tokens below; no inline styles anywhere (D8a). */
+
+:root {
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --fg: #1c1b19;
+  --muted: #6b675f;
+  --line: #e2ded5;
+  --accent: #2f5d8a;
+  --accent-fg: #ffffff;
+  --code-bg: #f3f1ec;
+  --changed-bg: #fff1c2;
+  --changed-edge: #d9a400;
+  --right: #1f7a4d;
+  --wrong: #b3261e;
+
+  --mode-fallback: #c77700;
+  --mode-fallback-bg: #fff4e0;
+  --mode-live: #1f7a4d;
+  --mode-live-bg: #e6f4ec;
+  --mode-cached: #5b4aa8;
+  --mode-cached-bg: #efecfa;
+
+  --radius: 6px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --frame: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161513;
+    --surface: #1e1d1a;
+    --fg: #ece9e2;
+    --muted: #a19c92;
+    --line: #34322d;
+    --accent: #7fb0e0;
+    --accent-fg: #10151a;
+    --code-bg: #23221f;
+    --changed-bg: #3d3212;
+    --changed-edge: #e0b030;
+    --right: #5fcf95;
+    --wrong: #ff8a80;
+    --mode-fallback: #f0a030;
+    --mode-fallback-bg: #33260f;
+    --mode-live-bg: #12291d;
+    --mode-cached-bg: #221d3a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+code,
+pre,
+input.field__input--code {
+  font-family: var(--font-code);
+}
+
+/* Shell: the tinted frame and the strip mark the mode on every screen (D5c). */
+.shell {
+  min-height: 100vh;
+  border: var(--frame) solid var(--line);
+}
+.shell[data-mode="fallback"] {
+  border-color: var(--mode-fallback);
+}
+.shell[data-mode="live"] {
+  border-color: var(--mode-live);
+}
+.shell[data-mode="cached"] {
+  border-color: var(--mode-cached);
+}
+
+.mode-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+.mode-strip[data-mode="fallback"] {
+  background: var(--mode-fallback-bg);
+  border-bottom-color: var(--mode-fallback);
+}
+.mode-strip[data-mode="live"] {
+  background: var(--mode-live-bg);
+}
+.mode-strip[data-mode="cached"] {
+  background: var(--mode-cached-bg);
+}
+.mode-strip__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+.mode-strip[data-mode="fallback"] .mode-strip__label {
+  color: var(--mode-fallback);
+}
+.mode-strip__detail {
+  font-size: 0.9rem;
+}
+
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3) var(--space-5);
+}
+
+.brand {
+  margin: 0 0 var(--space-3);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+.screen > * + * {
+  margin-top: var(--space-3);
+}
+
+.lede {
+  font-size: 1.15rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+button {
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-fg);
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Start */
+.source {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.source__name {
+  margin: 0;
+}
+.fixture-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+.fixture {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+.fixture__name {
+  font-weight: 600;
+}
+.fixture__path {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+/* Code */
+.code {
+  margin: 0;
+  padding: var(--space-3) 0;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+.code__line {
+  display: block;
+  padding: 0 var(--space-3);
+  white-space: pre;
+  border-left: 3px solid transparent;
+}
+.code__line--changed {
+  background: var(--changed-bg);
+  border-left-color: var(--changed-edge);
+}
+
+.question {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+/* Answer form */
+.answer {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+.field {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+}
+.field__label {
+  font-weight: 600;
+}
+.field__input {
+  font: inherit;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+}
+.field__input--code {
+  font-family: var(--font-code);
+}
+.field__input--number {
+  max-width: 10rem;
+}
+.field__hint {
+  font-size: 0.85rem;
+}
+
+/* Reveal */
+.verdict {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.verdict--right {
+  color: var(--right);
+}
+.verdict--wrong {
+  color: var(--wrong);
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+}
+
+/* Report */
+.buckets {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+}
+.bucket {
+  display: grid;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.bucket[data-bucket="confidently-wrong"] {
+  border-color: var(--wrong);
+}
+.bucket__count {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.entry {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.entry__heading {
+  margin: 0;
+  font-family: var(--font-code);
+  font-size: 1rem;
+}
+.entry__no-label {
+  margin: var(--space-1) 0 0;
+  font-size: 0.85rem;
+}
+.entry__fact {
+  margin: var(--space-2) 0 0;
+}
+
+.error {
+  color: var(--wrong);
+}
