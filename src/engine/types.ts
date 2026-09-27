@@ -72,7 +72,20 @@ export interface Beat extends AnswerKeyEntry {
 
 export type VivaMode = "live" | "cached" | "fallback";
 
+/**
+ * A candidate (or loaded) mutant dropped as equivalent (09 §1 step 4): the shared battery and
+ * the bounded targeted search both found no distinguishing input. Never reaches the question
+ * loop or the report; kept here so a UI that wants to show the drop count/reason can (ticket
+ * 09: that surfacing is a UI hook for whichever ticket owns the relevant screen).
+ */
+export interface EquivalentDrop {
+  mutant: CandidateMutant;
+  reason: string;
+}
+
 export interface Viva {
   mode: VivaMode;
   beats: Beat[];
+  /** Mutants dropped as equivalent mutants (CONTEXT.md) before any beat was built. */
+  drops: EquivalentDrop[];
 }

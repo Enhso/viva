@@ -238,5 +238,6 @@ async function runViva(
           fallback: fellBack.length > 0 ? { functionNames: fellBack, reason: equivalentReason } : undefined,
         }
       : { mode: "fallback", reason };
-  return { viva: { mode, beats }, modeInfo };
+  // TODO(ticket 09 -> UI): surface per-mutant equivalent-drop reasons here once a screen wants them.
+  return { viva: { mode, beats, drops: [] }, modeInfo };
 }
