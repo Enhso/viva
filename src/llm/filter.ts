@@ -32,7 +32,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Validates the response against the contract (`_output-contract.md`): every function_id and
- * candidate_id sent must appear exactly once; a loaded verdict must carry a label. Any violation
+ * candidate_id sent must appear exactly once. A loaded verdict without a label, or an unrecognized
+ * verdict, becomes a rejection naming the problem rather than failing the whole response. Any violation
  * throws, which the caller (runFilterCall) treats as this provider failing.
  */
 export function parseFilterResponse(raw: string, request: FilterRequest): FilterResult {
@@ -73,17 +74,19 @@ export function parseFilterResponse(raw: string, request: FilterRequest): Filter
       if (!expectedCandidate) throw new Error(`candidate_id "${candidateId}" under "${functionId}" was not among the candidates sent`);
 
       const checklist = isRecord(candEntry.checklist) ? candEntry.checklist : {};
-      if (candEntry.verdict === "loaded") {
-        const label = candEntry.label;
-        if (typeof label !== "string" || label.trim() === "") {
-          throw new Error(`loaded candidate "${candidateId}" under "${functionId}" is missing a label`);
-        }
+      // Ruling: a malformed verdict never loads a mutant and never discards the other verdicts;
+      // it becomes a rejection naming what was wrong (lab table, candidate log).
+      const verdict = typeof candEntry.verdict === "string" ? candEntry.verdict.trim().toLowerCase() : candEntry.verdict;
+      const label = typeof candEntry.label === "string" ? candEntry.label.trim() : "";
+      const reason = typeof candEntry.reason === "string" ? candEntry.reason : "";
+      if (verdict === "loaded" && label !== "") {
         loaded.push({ functionId, candidateId, label, checklist });
-      } else if (candEntry.verdict === "rejected") {
-        const reason = candEntry.reason;
-        rejected.push({ functionId, candidateId, reason: typeof reason === "string" ? reason : "", checklist });
+      } else if (verdict === "loaded") {
+        rejected.push({ functionId, candidateId, reason: `marked loaded without a label${reason ? `: ${reason}` : ""}`, checklist });
+      } else if (verdict === "rejected") {
+        rejected.push({ functionId, candidateId, reason, checklist });
       } else {
-        throw new Error(`candidate "${candidateId}" under "${functionId}" has an unrecognized verdict`);
+        rejected.push({ functionId, candidateId, reason: `unrecognized verdict ${JSON.stringify(candEntry.verdict ?? null)}`, checklist });
       }
     }
 

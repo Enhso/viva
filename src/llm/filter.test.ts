@@ -110,20 +110,42 @@ describe("parseFilterResponse (offline, against recorded response shapes)", () =
     expect(() => parseFilterResponse(JSON.stringify({ functions: [] }), request)).toThrow(/missing from the response/);
   });
 
-  it("rejects a loaded verdict with no label", () => {
-    const recorded = JSON.stringify({
+  // One malformed verdict among dozens shouldn't discard the whole response (a real OpenRouter
+  // answer did this on 2026-09-27), but it must never load a mutant: it becomes a rejection that
+  // says what was wrong, visible in the lab table and the candidate log.
+  function withVerdicts(first: Record<string, unknown>) {
+    return JSON.stringify({
       functions: [
         {
           function_id: "sumRange",
           candidates: [
-            { candidate_id: "sumRange:relational-flip:40", verdict: "loaded" },
+            { candidate_id: "sumRange:relational-flip:40", ...first },
             { candidate_id: "sumRange:relational-flip:80", verdict: "rejected", reason: "no" },
           ],
         },
       ],
     });
+  }
 
-    expect(() => parseFilterResponse(recorded, request)).toThrow(/missing a label/);
+  it("turns a loaded verdict with no label into a rejection that says so", () => {
+    const result = parseFilterResponse(withVerdicts({ verdict: "loaded" }), request);
+
+    expect(result.loaded).toEqual([]);
+    expect(result.rejected[0]).toMatchObject({ candidateId: "sumRange:relational-flip:40" });
+    expect(result.rejected[0].reason).toMatch(/without a label/);
+  });
+
+  it("reads verdicts case- and whitespace-insensitively", () => {
+    const result = parseFilterResponse(withVerdicts({ verdict: " Loaded ", label: "boundary" }), request);
+
+    expect(result.loaded.map((c) => c.label)).toEqual(["boundary"]);
+  });
+
+  it("turns an unrecognized verdict into a rejection naming it, instead of failing the provider", () => {
+    const result = parseFilterResponse(withVerdicts({ verdict: "maybe", label: "boundary" }), request);
+
+    expect(result.loaded).toEqual([]);
+    expect(result.rejected[0].reason).toMatch(/unrecognized verdict "maybe"/);
   });
 });
 

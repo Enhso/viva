@@ -26,6 +26,21 @@ const NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b";
 const GEMINI_MODEL = "gemini-3.8-flash";
 const OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
+/** Pause before the one retry of a fast transient failure (429/503). */
+export const TRANSIENT_RETRY_DELAY_MS = 2_000;
+
+/**
+ * Ruling: one retry after a 429 or 503. Those come back in about a second and often pass on the
+ * next try; every other failure moves the chain on — cost if wrong: ~2 s extra before the next
+ * provider when the overload persists.
+ */
+export async function fetchWithTransientRetry(url: string, init: RequestInit, delayMs = TRANSIENT_RETRY_DELAY_MS): Promise<Response> {
+  const first = await fetch(url, init);
+  if (first.status !== 429 && first.status !== 503) return first;
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+  return fetch(url, init);
+}
+
 function jsonHeaders(auth: Record<string, string> | null): Record<string, string> {
   return { "Content-Type": "application/json", ...auth };
 }
@@ -43,7 +58,7 @@ async function safeText(res: Response): Promise<string> {
 }
 
 async function callNvidia(prompt: string, apiKey: string | undefined): Promise<string> {
-  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+  const res = await fetchWithTransientRetry("https://integrate.api.nvidia.com/v1/chat/completions", {
     method: "POST",
     headers: jsonHeaders(bearer(apiKey)),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
@@ -62,7 +77,7 @@ async function callNvidia(prompt: string, apiKey: string | undefined): Promise<s
 }
 
 async function callGemini(prompt: string, apiKey: string | undefined): Promise<string> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+  const res = await fetchWithTransientRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: jsonHeaders(apiKey ? { "x-goog-api-key": apiKey } : null),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
@@ -83,7 +98,7 @@ async function callGemini(prompt: string, apiKey: string | undefined): Promise<s
 }
 
 async function callOpenRouter(prompt: string, apiKey: string | undefined): Promise<string> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await fetchWithTransientRetry("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: jsonHeaders(bearer(apiKey)),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
