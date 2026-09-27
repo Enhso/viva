@@ -20,12 +20,15 @@ export interface ReportEntry {
 
 export interface Report {
   bucketCounts: Record<CalibrationBucket, number>;
+  /** Mean of each beat's Brier score, computed on exact confidence (06 §3); null when there are no beats. */
+  meanBrier: number | null;
   entries: ReportEntry[];
 }
 
 export function buildReport(results: BeatResult[]): Report {
   const bucketCounts = Object.fromEntries(CALIBRATION_BUCKETS.map((bucket) => [bucket, 0])) as Record<CalibrationBucket, number>;
   for (const result of results) bucketCounts[result.bucket] += 1;
+  const meanBrier = results.length === 0 ? null : results.reduce((sum, result) => sum + result.brier, 0) / results.length;
 
   const entries = results.map(({ beat, prediction, confidence, bucket }): ReportEntry => ({
     bucket,
@@ -36,5 +39,5 @@ export function buildReport(results: BeatResult[]): Report {
     correctAnswer: describeOutput(renderOutput(beat.mutantOutput), t),
     confidence,
   }));
-  return { bucketCounts, entries };
+  return { bucketCounts, meanBrier, entries };
 }

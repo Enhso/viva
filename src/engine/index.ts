@@ -6,7 +6,7 @@ export { generateCandidateMutants } from "./mutate";
 export { complexityScore, orderByComplexity, type OrderedFunction } from "./complexity";
 export { BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION, estimateBeatCount } from "./pacing";
 export { sharedBattery } from "./battery";
-export { renderCall, renderOutput, sameOutput, type CanonicalRendering } from "./outputs";
+export { canonicalText, renderCall, renderOutput, sameOutput, type CanonicalRendering } from "./outputs";
 export { runFallbackViva, type FallbackVivaRequest } from "./fallback";
 export { runLiveViva, type LiveVivaRequest, type LoadedMutant } from "./live";
 export * from "./sandbox/types";
