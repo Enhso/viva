@@ -6,6 +6,8 @@ The session log with per-merge detail is `2026-09-27-1300-frontier-02-06.md`. Ti
 
 ## Start here
 
+0. The checklist of what remains is `.scratch/TODO.md`. Since the retro, CI (`.github/workflows/ci.yml`), `npm run check:api`, `npm run probe:providers`, and three hooks (provider/preview probe at session start, a clock line per turn, auto-WIP commit when a subagent stops) exist; see the TODO's "One-time environment setup".
+
 1. Read `CLAUDE.md` and `CONTEXT.md` (use the glossary's terms, and respect its `_Avoid_` list).
 2. `git checkout claude/bold-mayer-1lnkcv && npm ci`. Then run `npm test`, `npm run typecheck` and `npm run build`; see "Final state" below for the expected counts.
 3. Decide how PR #6 reaches `main`. It is large (tickets 02–19 plus 22–24, see the table), and every ticket inside it was merged and verified on its own. GitHub OAuth (ticket 23) can only be verified on the production alias, so that check happens after the merge.

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
     "filter-lab": "tsx scripts/filter-lab.ts",
-    "check:api": "tsc -p tsconfig.api.json"
+    "check:api": "tsc -p tsconfig.api.json",
+    "probe:providers": "tsx scripts/probe-providers.ts"
   },
   "dependencies": {
     "acorn": "^8.18.0",

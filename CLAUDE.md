@@ -19,7 +19,7 @@ Every ticket carries `Type: plumbing` or `Type: hatim`.
 - Determinism handles truth: `src/engine/` and `src/grading/` run with no model involved. A test fails if anything under them imports from `src/llm/`, which keeps `09-disclosure.md` §3 true by construction.
 - "complexity score" names `02`'s ordering. "information-theoretic" appears only for verified mutants (`03`, `07`).
 - Fallback mode (`03` §6) is the tracer bullet: it works at every commit.
-- Provider clients send an auth header only when the key's env var is set; in cloud sessions, API credentials may be injected by the proxy instead.
+- Provider clients always call the provider, and add the auth header when the key's env var is set; with the key unset they call without it (in cloud sessions a proxy may inject credentials). Tested in `src/llm/filter.test.ts`.
 
 Default layout, changeable by ticket: `src/engine/` (extract, mutate, battery, sandbox: DOM-free, runs in Node and browser) · `src/grading/` · `src/llm/` (provider chain, prompt loading, Jev) · `src/ui/` · `api/` (Vercel functions; GitHub OAuth callback is `/api/auth/callback`) · `fixtures/functions/` · `prompts/filter/`.
 
@@ -28,7 +28,6 @@ Default layout, changeable by ticket: `src/engine/` (extract, mutate, battery, s
 - The SessionStart hook prints an environment check. If it reports any provider BLOCKED, say so to Hatim before other work.
 - Push only the session branch. Subagent worktrees branch from local HEAD (`.claude/settings.json`) and merge locally.
 - Handoffs go to `.scratch/handoffs/`, prototypes to `prototypes/<slug>/`, both committed.
-- Package manager: npm.
 - UI review: a Vercel preview per push. Throwaway experience prototypes publish as artifacts. OAuth works only on the production alias, so OAuth checks happen after a merge to `main`.
 
 ## Agent skills
