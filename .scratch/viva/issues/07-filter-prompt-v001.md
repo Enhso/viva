@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately). Hatim may prefer to write it after seeing the rule engine's candidates (ticket 03) or a first lab run (ticket 11); that's his call, not a gate.
 
-**Status:** ready-for-human
+**Status:** done
 
 **Type:** hatim
 **Spec:** 03 §1–2, brief §2.2–2.3, 00 §5 #1
