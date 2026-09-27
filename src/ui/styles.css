@@ -184,6 +184,92 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+/* Selection screen (08): begin ---------------------------------------------------------- */
+.language-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+}
+.language-picker legend {
+  font-weight: 600;
+  padding: 0;
+}
+.language-picker__option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: normal;
+}
+.selection-controls {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+.selection-controls .field__input {
+  width: 100%;
+}
+.help-box {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+}
+.help-box__heading {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+.help-box__provisional {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+.fixture-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+/* Ticket 23: a repo row in the GitHub connect flow reuses .fixture-card's list rhythm, but is a
+   clickable button (picking a repo triggers ingestion) rather than a static card. */
+.repo-pick {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.github-connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+.fixture__complexity {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+/* The cutoff is a positional marker, not a highlighted-top/greyed-rest split (02 §3): every
+   card renders identically regardless of where it falls relative to N. */
+.fixture-cutoff {
+  margin: var(--space-2) 0;
+  padding: var(--space-1) var(--space-2);
+  border-top: 2px dashed var(--accent);
+  border-bottom: 2px dashed var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+/* Selection screen (08): end ------------------------------------------------------------- */
+
 /* Code */
 .code {
   margin: 0;
@@ -240,6 +326,84 @@ button:disabled {
 .field__hint {
   font-size: 0.85rem;
 }
+
+/* Multiple-choice prediction options (ticket 18) */
+.prediction-options {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+.prediction-option {
+  font: inherit;
+  text-align: left;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+.prediction-option--selected {
+  border-color: var(--accent, var(--fg));
+  font-weight: 600;
+}
+
+/* Confidence widget (ticket 05) — begin */
+.confidence {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+.confidence__control {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.confidence__slider {
+  width: 100%;
+}
+.confidence__nudge {
+  font: inherit;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+.confidence__nudge:hover {
+  border-color: var(--accent);
+}
+.confidence__box {
+  max-width: 10rem;
+}
+.confidence__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.confidence__legend-item {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.confidence__legend-item:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+/* Confidence widget (ticket 05) — end */
 
 /* Reveal */
 .verdict {
@@ -298,12 +462,38 @@ button:disabled {
   font-family: var(--font-code);
   font-size: 1rem;
 }
-.entry__no-label {
-  margin: var(--space-1) 0 0;
-  font-size: 0.85rem;
-}
 .entry__fact {
   margin: var(--space-2) 0 0;
+}
+.report-summary {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-3);
+}
+.report-summary__pointer {
+  font-weight: 600;
+}
+.label-group {
+  margin: var(--space-4) 0;
+}
+.label-group__label {
+  margin: 0 0 var(--space-2);
+}
+.label-group__connecting-line {
+  margin: 0 0 var(--space-2);
+}
+.label-group .entry {
+  margin-bottom: var(--space-2);
+}
+/* Tier 2 placeholder treatment (07 §4): ticket 21 (hatim) picks the real one. Dashed underline
+   plus a marker keeps it structurally distinct from Tier 1's plain text in the meantime. */
+.tier2 {
+  border-bottom: 2px dashed var(--mode-cached);
+  cursor: help;
+}
+.tier2__marker {
+  color: var(--mode-cached);
+  margin-left: 0.1em;
 }
 
 .error {

@@ -4,7 +4,7 @@ description: Implements one `Type: plumbing` ticket from `.scratch/` in an isola
 model: sonnet
 effort: medium
 isolation: worktree
-maxTurns: 80
+maxTurns: 120
 skills:
   - tdd
   - verification-before-completion
@@ -26,10 +26,14 @@ You implement exactly one ticket. The dispatch message gives its path.
 - A judgment call that touches a `hatim` area, brief §1, or contradicts the spec: return `BLOCKED` with the question.
 - A provider or network failure: report the exact error and the host. Real data or an honest failure; a quietly mocked response hides the outage from Hatim.
 - Commit to your worktree branch in small steps. The orchestrator merges your branch locally and owns every push.
+- Import new modules by path; leave the `index.ts` barrels to the long-standing public API (parallel tickets otherwise collide there on every merge).
+- Browser checks: a throwaway `node` script driving the `playwright` library (Chromium is preinstalled under `/opt/pw-browsers`), on the dev-server port the dispatch gives you. The Playwright MCP browser belongs to the orchestrator: every agent in a session shares it.
+- Anything under `api/` passes `npm run check:api` (Node ESM rules, as Vercel runs it).
 
 ## Done means
 
 - Typecheck plus the tests touching your change pass, with output shown as the verification skill requires.
+- Every `Ruling:` (yours or the ticket's) that constrains engine or grading behaviour has a test whose name cites it: a ruling without a test is a wish. (R3, "a timeout never counts as a distinguishing output", went unenforced through three tickets.)
 - The ticket's checkboxes you met are ticked, status is done, and an `## Answer` paragraph says what shipped.
 
 ## Report (15 lines or fewer)

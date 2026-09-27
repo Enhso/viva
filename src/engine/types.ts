@@ -14,7 +14,17 @@ export interface EligibleFunction {
   docstring: string | null;
 }
 
-export type MutationRule = "relational-flip";
+export type MutationRule =
+  | "relational-flip"
+  | "equality-swap"
+  | "logical-flip"
+  | "arithmetic-swap"
+  | "boolean-literal-flip"
+  | "negation-removal"
+  | "negation-insertion"
+  | "off-by-one-literal"
+  | "return-deletion"
+  | "loop-bound-change";
 
 /** A mechanical rewrite of one syntax-tree node, produced by the rule engine. */
 export interface CandidateMutant {
@@ -53,16 +63,40 @@ export interface SurvivingMutant extends CandidateMutant {
   taxonomyLabel: string | null;
 }
 
+/** How the student answered a beat (05 §3, ticket 18). */
+export type BeatFormat = "free-text" | "multiple-choice";
+
 /** One predict-then-reveal cycle for a single distinguishing input of a single mutant. */
 export interface Beat extends AnswerKeyEntry {
   id: string;
   function: EligibleFunction;
   mutant: SurvivingMutant;
+  format: BeatFormat;
+  /**
+   * Present only when `format` is "multiple-choice" (05 §4): the correct output plus real
+   * distractors — other candidate mutants' actual outputs on this same input — already shuffled
+   * by the app's own PRNG. `options[correctOptionIndex]` is `mutantOutput` by reference.
+   */
+  options?: RunOutcome[];
+  correctOptionIndex?: number;
 }
 
 export type VivaMode = "live" | "cached" | "fallback";
 
+/**
+ * A candidate (or loaded) mutant dropped as equivalent (09 §1 step 4): the shared battery and
+ * the bounded targeted search both found no distinguishing input. Never reaches the question
+ * loop or the report; kept here so a UI that wants to show the drop count/reason can (ticket
+ * 09: that surfacing is a UI hook for whichever ticket owns the relevant screen).
+ */
+export interface EquivalentDrop {
+  mutant: CandidateMutant;
+  reason: string;
+}
+
 export interface Viva {
   mode: VivaMode;
   beats: Beat[];
+  /** Mutants dropped as equivalent mutants (CONTEXT.md) before any beat was built. */
+  drops: EquivalentDrop[];
 }

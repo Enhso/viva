@@ -1,7 +1,23 @@
-/** What one execution of a function on one input observably did. */
+/**
+ * What one execution of a function on one input observably did.
+ *
+ * A directly-returned function can't cross the structured-clone/postMessage boundary either
+ * runner uses, so (ticket 17) both runners call it `RETURNED_FUNCTION_CALLS` times with no
+ * arguments *inside* the sandboxed script, before that boundary, and report the list of results
+ * as an ordinary `"returned"` array — `calledReturnedFunction: true` is set only so the beat's
+ * wording can name what's being predicted; grading and equality ignore it and compare `value`
+ * exactly as they would for any other array. If one of those calls throws or times out, the
+ * whole run reports that instead (04's rules), same as if the top-level call itself had. A
+ * function *nested* inside another returned value (e.g. an array of functions) is never called —
+ * only a directly-returned function is — and still fails to clone, reported as a thrown
+ * `DataCloneError`.
+ */
 export type RunOutcome =
-  | { kind: "returned"; value: unknown }
-  | { kind: "threw"; errorName: string; message: string }
+  | { kind: "returned"; value: unknown; calledReturnedFunction?: true }
+  // Ruling: the thrown message never counts either — V8 (Node) and the browser's engine word
+  // errors differently, so comparing messages would make the two runners (and the distinguishing
+  // check) disagree on code that behaves identically; errorName is stable.
+  | { kind: "threw"; errorName: string }
   | { kind: "timeout" };
 
 export interface RunRequest {
@@ -18,15 +34,75 @@ export interface SandboxRunner {
 
 export const DEFAULT_TIMEOUT_MS = 1000;
 
+// Fixed for every run, so two runs of the same input agree (04 §2). Arbitrary constants: only
+// determinism (repeatability) is required, not realism.
+const RANDOM_SEED = 0x5eed1234;
+const FIXED_TIME_MS = 1_700_000_000_000;
+
+/**
+ * Prepended to every run, in both runners, before the student's own source. Runs first each time
+ * (a fresh `vm` context per Node run; re-executed on every call in the Worker, since one Worker
+ * handles many runs) so it can't leak state between runs or between mutant and original.
+ * - Seeds `Math.random` and fixes `Date.now` so randomness/clock use is repeatable.
+ * - Clears `fetch`/`XMLHttpRequest`/`WebSocket` so there is nothing to reach the network with.
+ * Dynamic `import(...)` needs no stub: Node's `vm` has no import-callback configured (throws
+ * synchronously or rejects the returned promise), and the browser blocks it too (04, manual check).
+ */
+const SANDBOX_PREAMBLE = `
+globalThis.fetch = undefined;
+globalThis.XMLHttpRequest = undefined;
+globalThis.WebSocket = undefined;
+(function seedMathRandom(seed) {
+  Math.random = function () {
+    seed |= 0;
+    seed = (seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+})(${RANDOM_SEED});
+Date.now = function () { return ${FIXED_TIME_MS}; };
+`;
+
+// Ticket 17: the call protocol for a directly-returned function, one named constant so the
+// sandbox's own call loop, the beat's wording ("calling it {count} times"), and nothing else
+// (the distinguishing check and grading just see the resulting array, generically) can't drift
+// apart on how many times "three times" actually is.
+export const RETURNED_FUNCTION_CALLS = 3;
+
+// An internal marker key, not something student code could plausibly produce by accident, so the
+// runners can tell "this object is the sandbox's own report of calling a returned function
+// RETURNED_FUNCTION_CALLS times" apart from a function that plainly returns an object of its own.
+const RETURNED_FUNCTION_MARKER = "__vivaReturnedFunctionCalls";
+
 /** Function body that declares the student's function and calls it with the `__input` array. Shared by both runners. */
 export function invocationBody(source: string, functionName: string): string {
-  return `${source}\nreturn ${functionName}(...__input);`;
+  return `${SANDBOX_PREAMBLE}
+${source}
+var __result = ${functionName}(...__input);
+if (typeof __result === "function") {
+  var __calls = [];
+  for (var __i = 0; __i < ${RETURNED_FUNCTION_CALLS}; __i++) { __calls.push(__result()); }
+  return { ${JSON.stringify(RETURNED_FUNCTION_MARKER)}: true, calls: __calls };
+}
+return __result;`;
+}
+
+/**
+ * If `value` is the sandbox's own marker object reporting a directly-returned function's call
+ * results (ticket 17), returns those results; otherwise null. Both runners check this on the raw
+ * value the script returned, before it crosses the structured-clone/postMessage boundary.
+ */
+export function returnedFunctionCalls(value: unknown): unknown[] | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (record[RETURNED_FUNCTION_MARKER] !== true) return null;
+  return record.calls as unknown[];
 }
 
 export function thrownOutcome(error: unknown): RunOutcome {
   if (error !== null && typeof error === "object" && "name" in error) {
-    const message = "message" in error ? String(error.message) : "";
-    return { kind: "threw", errorName: String(error.name), message };
+    return { kind: "threw", errorName: String(error.name) };
   }
-  return { kind: "threw", errorName: typeof error, message: String(error) };
+  return { kind: "threw", errorName: typeof error };
 }

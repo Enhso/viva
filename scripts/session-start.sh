@@ -44,4 +44,22 @@ elif [ -f package.json ]; then
 else
   echo "- no package.json yet"
 fi
+
+# Model-level liveness: configured models + Jev auth (reachable hosts can still 401/404/time out).
+# VIVA_SKIP_PROVIDER_PROBE=1 skips it (each run spends one free-tier OpenRouter request).
+if [ -z "${VIVA_SKIP_PROVIDER_PROBE:-}" ] && [ -f scripts/probe-providers.ts ] && [ -d node_modules ]; then
+  echo "### Provider probe (npm run probe:providers)"
+  timeout 60 npx --no-install tsx scripts/probe-providers.ts 2>/dev/null || echo "- provider probe did not finish"
+fi
+
+# The branch's Vercel preview sits behind Vercel Authentication; the bypass header gets through.
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ] && [ -n "$branch" ]; then
+  slug="$(printf '%s' "$branch" | tr 'A-Z/_.' 'a-z---')"
+  url="https://viva-git-${slug}-vnst1.vercel.app/api/health"
+  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$url" 2>/dev/null)"
+  echo "- branch preview /api/health: HTTP ${code:-none} (${url%/api/health})"
+else
+  echo "- branch preview: not checked (\$VERCEL_AUTOMATION_BYPASS_SECRET not set in this session)"
+fi
 exit 0

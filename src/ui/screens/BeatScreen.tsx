@@ -1,60 +1,103 @@
 import { useState, type FormEvent } from "react";
-import { renderCall, type Beat } from "../../engine";
+import { renderOutput, type Beat } from "../../engine";
 import { MutantCode } from "../CodeBlock";
-import { useT } from "../strings";
-
-// A plain number box for now; ticket 05 replaces it with the confidence widget.
-// 0–100 with at most one decimal, checked on the text so no float arithmetic touches the value.
-const CONFIDENCE_PATTERN = /^(100(\.0)?|\d{1,2}(\.\d)?)$/;
+import { ConfidenceWidget } from "../ConfidenceWidget";
+import { beatQuestion, describeOutput, useT } from "../strings";
 
 export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (prediction: string, confidence: number) => void }) {
   const t = useT();
   const [prediction, setPrediction] = useState("");
-  const [confidence, setConfidence] = useState("");
-  const valid = prediction.trim() !== "" && CONFIDENCE_PATTERN.test(confidence.trim());
+  const [confidence, setConfidence] = useState(50);
+  const valid = prediction.trim() !== "" && Number.isFinite(confidence) && confidence >= 0 && confidence <= 100;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (valid) onSubmit(prediction, Number(confidence.trim()));
+    if (valid) onSubmit(prediction, confidence);
   }
 
   return (
     <section className="screen">
       <MutantCode beat={beat} />
       <h2 className="question">
-        <code>{t("beat.question", { call: renderCall(beat.function.name, beat.input) })}</code>
+        <code>{beatQuestion(beat, t)}</code>
       </h2>
       <form className="answer" onSubmit={submit}>
-        <label className="field">
-          <span className="field__label">{t("beat.prediction.label")}</span>
-          <input
-            className="field__input field__input--code"
-            value={prediction}
-            onChange={(event) => setPrediction(event.target.value)}
-            autoFocus
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <span className="field__hint muted">{t("beat.prediction.hint")}</span>
-        </label>
-        <label className="field">
-          <span className="field__label">{t("beat.confidence.label")}</span>
-          <input
-            className="field__input field__input--number"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={100}
-            step={0.1}
-            value={confidence}
-            onChange={(event) => setConfidence(event.target.value)}
-          />
-          <span className="field__hint muted">{t("beat.confidence.hint")}</span>
-        </label>
+        <div className="field">
+          <span className="field__label" id="prediction-label">
+            {t("beat.prediction.label")}
+          </span>
+          {beat.format === "multiple-choice" && beat.options ? (
+            <PredictionOptions options={beat.options} value={prediction} onChange={setPrediction} />
+          ) : (
+            <>
+              <input
+                className="field__input field__input--code"
+                aria-labelledby="prediction-label"
+                aria-describedby="prediction-hint"
+                value={prediction}
+                onChange={(event) => setPrediction(event.target.value)}
+                autoFocus
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <span className="field__hint muted" id="prediction-hint">
+                {t("beat.prediction.hint")}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="field">
+          <span className="field__label" id="confidence-label">
+            {t("beat.confidence.label")}
+          </span>
+          <ConfidenceWidget valuePercent={confidence} onChange={setConfidence} labelledBy="confidence-label" describedBy="confidence-hint" />
+          <span className="field__hint muted" id="confidence-hint">
+            {t("beat.confidence.hint")}
+          </span>
+        </div>
         <button type="submit" disabled={!valid}>
           {t("beat.submit")}
         </button>
       </form>
     </section>
+  );
+}
+
+/**
+ * The multiple-choice prediction input (05 §4, ticket 18): options are already shuffled by the
+ * engine (multiple-choice.ts) before this ever renders, and rendered in canonical output form
+ * (describeOutput/renderOutput, 04 §3) -- picking one submits that same canonical text as the
+ * prediction, so grading runs through the exact same path free text does (10's readPrediction +
+ * sameOutput), no separate comparison for this format.
+ */
+function PredictionOptions({
+  options,
+  value,
+  onChange,
+}: {
+  options: Beat["options"];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const t = useT();
+  return (
+    <div className="prediction-options" role="radiogroup">
+      {options!.map((option, index) => {
+        const text = describeOutput(renderOutput(option), t);
+        const selected = value === text;
+        return (
+          <button
+            key={index}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={selected ? "prediction-option prediction-option--selected" : "prediction-option"}
+            onClick={() => onChange(text)}
+          >
+            <code>{text}</code>
+          </button>
+        );
+      })}
+    </div>
   );
 }

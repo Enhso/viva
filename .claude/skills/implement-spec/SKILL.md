@@ -24,7 +24,7 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 4. Use **implementer subagents** to implement each ticket: dispatch the `plumber` agent, which runs in its own worktree branched from local HEAD. Dispatch only `Type: plumbing` tickets; `Type: hatim` tickets wait for Hatim in the main session. Run at most 3 implementers at once: they share Hatim's rate limits. <!-- VIVA PATCH -->
 
-5. Once an **implementer subagent** completes, merge its work to the PR branch with a **merger subagent**.
+5. Once an **implementer subagent** completes, run the **Spec** axis of `/code-review` on its branch's diff against the ticket (a reviewer subagent: least context pressure, so it holds the ticket's rules and rulings to the diff). Send real findings back to the implementer or fix them; then merge its work to the PR branch, verify (typecheck, test, build, `check:api`), and push. <!-- VIVA PATCH: per-ticket review; the end-of-PR review alone found a ruling broken three tickets earlier. -->
 
 6. If this changes the **frontier** of available tickets, kick off more **implementer subagents** to work on the new tickets. This allows for maximum concurrency.
 

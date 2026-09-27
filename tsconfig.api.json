@@ -1,0 +1,16 @@
+{
+  // `npm run check:api`: the serverless functions under Node's ESM rules, as Vercel runs them.
+  // package.json is "type": "module", so every relative import in a function's runtime graph
+  // needs its `.js` specifier; the app's own tsconfig (moduleResolution "bundler") can't see that.
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["api/**/*.ts"],
+  "exclude": ["api/**/*.test.ts"]
+}
