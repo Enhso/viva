@@ -5,7 +5,6 @@
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 
 echo "## Session environment check (scripts/session-start.sh)"
-echo "- environment: ${CLAUDE_CODE_ENVIRONMENT_NAME:-UNSET: the custom 'viva' environment was probably not applied. Tell Hatim before other work.}"
 echo "- session branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
 
 probe() {

@@ -25,7 +25,7 @@ Default layout, changeable by ticket: `src/engine/` (extract, mutate, battery, s
 
 ## Cloud session mechanics
 
-- The SessionStart hook prints an environment check. If it reports the environment name unset, or any provider BLOCKED, say so to Hatim before other work.
+- The SessionStart hook prints an environment check. If it reports any provider BLOCKED, say so to Hatim before other work.
 - Push only the session branch. Subagent worktrees branch from local HEAD (`.claude/settings.json`) and merge locally.
 - Handoffs go to `.scratch/handoffs/`, prototypes to `prototypes/<slug>/`, both committed.
 - Package manager: npm.
