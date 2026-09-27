@@ -62,3 +62,5 @@ the browser via a fallback-mode viva run: box entry of 67.3% reached the
 reveal screen's "Your confidence: 67.3%" unrounded, legend clicks snap
 (e.g. "Certain" → 90.0%), and nudge buttons move the box by exactly 0.1
 without drifting the slider's whole-percent display.
+
+Fix (orchestrator, final review of PR #6): "the confidence recorded equals what the widget shows" was not met: typing `67.35` recorded 67.4 while the box showed 67.35, clearing the box kept the old value, and Enter could submit either. `parseBoxEntry` (`src/ui/confidence.ts`, tested) accepts only an exact 0–100 value at 0.1% precision; anything else reports NaN, which keeps Reveal disabled, and the invalid text stays visible. Also restored accessible names lost when the field wrapper stopped being a `<label>` (prediction input, slider, box: `aria-labelledby`). Browser check (forced fallback): `67.35` and empty → Reveal disabled; `67.3` + Enter → reveal shows "Your confidence 67.3%".

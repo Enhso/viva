@@ -23,27 +23,37 @@ export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (predicti
       </h2>
       <form className="answer" onSubmit={submit}>
         <div className="field">
-          <span className="field__label">{t("beat.prediction.label")}</span>
+          <span className="field__label" id="prediction-label">
+            {t("beat.prediction.label")}
+          </span>
           {beat.format === "multiple-choice" && beat.options ? (
             <PredictionOptions options={beat.options} value={prediction} onChange={setPrediction} />
           ) : (
             <>
               <input
                 className="field__input field__input--code"
+                aria-labelledby="prediction-label"
+                aria-describedby="prediction-hint"
                 value={prediction}
                 onChange={(event) => setPrediction(event.target.value)}
                 autoFocus
                 autoComplete="off"
                 spellCheck={false}
               />
-              <span className="field__hint muted">{t("beat.prediction.hint")}</span>
+              <span className="field__hint muted" id="prediction-hint">
+                {t("beat.prediction.hint")}
+              </span>
             </>
           )}
         </div>
         <div className="field">
-          <span className="field__label">{t("beat.confidence.label")}</span>
-          <ConfidenceWidget valuePercent={confidence} onChange={setConfidence} />
-          <span className="field__hint muted">{t("beat.confidence.hint")}</span>
+          <span className="field__label" id="confidence-label">
+            {t("beat.confidence.label")}
+          </span>
+          <ConfidenceWidget valuePercent={confidence} onChange={setConfidence} labelledBy="confidence-label" describedBy="confidence-hint" />
+          <span className="field__hint muted" id="confidence-hint">
+            {t("beat.confidence.hint")}
+          </span>
         </div>
         <button type="submit" disabled={!valid}>
           {t("beat.submit")}

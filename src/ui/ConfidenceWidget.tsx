@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import {
   LEGEND_BUCKETS,
   nudgeTenths,
@@ -6,6 +6,7 @@ import {
   sliderStepTenths,
   snapToLegendBucket,
   tenthsToPercent,
+  parseBoxEntry,
 } from "./confidence";
 import { useT } from "./strings";
 
@@ -17,12 +18,20 @@ import { useT } from "./strings";
 export function ConfidenceWidget({
   valuePercent,
   onChange,
+  labelledBy,
+  describedBy,
 }: {
   valuePercent: number;
   onChange: (percent: number) => void;
+  /** Id of the visible label that names the slider and the box (they share one value). */
+  labelledBy?: string;
+  describedBy?: string;
 }) {
   const t = useT();
-  const tenths = percentToTenths(valuePercent);
+  // While the box holds an invalid entry (valuePercent is NaN), the slider stays where it was.
+  const lastValidTenths = useRef(percentToTenths(Number.isFinite(valuePercent) ? valuePercent : 50));
+  if (Number.isFinite(valuePercent)) lastValidTenths.current = percentToTenths(valuePercent);
+  const tenths = lastValidTenths.current;
   // The numeric box's own text, so a student can type "67" without it becoming "67.0" out from
   // under them mid-keystroke; it re-syncs from the committed value on blur or on any other
   // control's change.
@@ -40,15 +49,14 @@ export function ConfidenceWidget({
 
   function onBoxChange(event: ChangeEvent<HTMLInputElement>) {
     setBoxText(event.target.value);
-    const parsed = Number(event.target.value);
-    if (event.target.value.trim() !== "" && Number.isFinite(parsed)) {
-      onChange(tenthsToPercent(percentToTenths(parsed)));
-    }
+    // An entry the widget can't hold exactly reports NaN, which keeps Reveal disabled: the
+    // recorded confidence always equals what the box shows (ticket 05), never a rounded cousin.
+    onChange(parseBoxEntry(event.target.value) ?? Number.NaN);
   }
 
   function onBoxBlur() {
-    // Re-sync the box text to the canonical value in case of a partial or out-of-range entry.
-    setBoxText(tenthsToPercent(tenths).toFixed(1));
+    // Tidy a valid entry to one decimal; leave an invalid one visible so the student can fix it.
+    if (Number.isFinite(valuePercent)) setBoxText(tenthsToPercent(tenths).toFixed(1));
   }
 
   return (
@@ -65,6 +73,7 @@ export function ConfidenceWidget({
         <input
           className="confidence__slider"
           type="range"
+          aria-labelledby={labelledBy}
           min={0}
           max={100}
           step={1}
@@ -82,6 +91,8 @@ export function ConfidenceWidget({
       </div>
       <input
         className="field__input field__input--number confidence__box"
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
         type="number"
         inputMode="decimal"
         min={0}

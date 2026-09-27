@@ -55,3 +55,15 @@ export function snapToLegendBucket(bucketId: string): number {
   if (!bucket) throw new RangeError(`unknown legend bucket: ${bucketId}`);
   return bucket.snapToTenths;
 }
+
+/**
+ * The numeric box's text as a percent, or null when the widget can't hold it exactly: outside
+ * 0-100, finer than 0.1%, or not a plain decimal. Never rounds, so the recorded confidence always
+ * equals what the box shows (ticket 05); null disables Reveal until the entry is fixed.
+ */
+export function parseBoxEntry(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^\d{1,3}(\.\d)?$/.test(trimmed)) return null;
+  const percent = Number(trimmed);
+  return percent <= 100 ? percent : null;
+}

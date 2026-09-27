@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LEGEND_BUCKETS,
+  parseBoxEntry,
   clampTenths,
   percentToTenths,
   sliderStepTenths,
@@ -88,5 +89,20 @@ describe("snapToLegendBucket", () => {
   it("snaps the indifference bucket to exactly 500 tenths (50.0%)", () => {
     const indifference = LEGEND_BUCKETS.find((b) => b.min <= 50 && 50 <= b.max)!;
     expect(snapToLegendBucket(indifference.id)).toBe(500);
+  });
+});
+
+describe("parseBoxEntry", () => {
+  // Ticket 05: "the confidence recorded for the beat equals what the widget shows". An entry the
+  // widget can't hold exactly is invalid (Reveal stays disabled), never silently rounded.
+  it("accepts 0-100 at 0.1% precision, exactly", () => {
+    expect(parseBoxEntry("67.3")).toBe(67.3);
+    expect(parseBoxEntry("67")).toBe(67);
+    expect(parseBoxEntry("0")).toBe(0);
+    expect(parseBoxEntry("100.0")).toBe(100);
+  });
+
+  it("rejects anything it would have to round, clamp, or guess", () => {
+    for (const text of ["67.35", "", "  ", "150", "-1", "100.1", "abc", "1e2"]) expect(parseBoxEntry(text)).toBeNull();
   });
 });
