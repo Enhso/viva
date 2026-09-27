@@ -26,7 +26,7 @@ export const en = {
 
   "beat.question": "{call} → ?",
   "beat.prediction.label": "Your prediction",
-  "beat.prediction.hint": "A JavaScript value: 42, \"text\", true, null.",
+  "beat.prediction.hint": "A JavaScript value: 42, \"text\", true, null. For an error: throws TypeError.",
   "beat.confidence.label": "Confidence you're right (%)",
   "beat.confidence.hint": "0 to 100, to one decimal place.",
   "beat.submit": "Reveal",
@@ -34,6 +34,7 @@ export const en = {
   "reveal.right": "Right.",
   "reveal.wrong": "Wrong.",
   "reveal.predicted": "You predicted",
+  "reveal.readAs": "Read as",
   "reveal.mutantOutput": "This version returns",
   "reveal.originalOutput": "Your original returns",
   "reveal.confidence": "Your confidence",

@@ -18,6 +18,8 @@ export function RevealScreen({ result, isLast, onNext }: { result: BeatResult; i
       <dl className="facts">
         <dt>{t("reveal.predicted")}</dt>
         <dd><code>{result.prediction.trim()}</code></dd>
+        <dt>{t("reveal.readAs")}</dt>
+        <dd><code>{describeOutput(renderOutput(result.reading), t)}</code></dd>
         <dt>{t("reveal.mutantOutput")}</dt>
         <dd><code>{describeOutput(renderOutput(beat.mutantOutput), t)}</code></dd>
         <dt>{t("reveal.originalOutput")}</dt>
