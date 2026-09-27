@@ -17,6 +17,9 @@ export const en = {
   "start.source.demoNote": "Example functions bundled with Viva, not your own repository.",
   "start.begin": "Start viva",
   "start.loading": "Running your code and its mutants…",
+  "start.noDocstring": "no docstring provided",
+  "start.rejected.heading": "Excluded from this corpus",
+  "start.rejected.reason": "Excluded: {reason}",
 
   "beat.question": "{call} → ?",
   "beat.prediction.label": "Your prediction",

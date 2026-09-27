@@ -1,6 +1,7 @@
 // Model-free by construction: nothing here may import from src/llm (architecture-boundary.test.ts).
 // The Node runner (sandbox/node-runner.ts) is deliberately not re-exported: browser code must not bundle node:vm.
-export { extractFunctions } from "./extract";
+export { extractFunctions, scanFunctions, type RejectedFunction } from "./extract";
+export { type ScopeViolation } from "./scope";
 export { generateCandidateMutants } from "./mutate";
 export { sharedBattery } from "./battery";
 export { renderCall, renderOutput, sameOutput } from "./outputs";
