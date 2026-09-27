@@ -4,7 +4,7 @@ What remains after the 2026-09-27 session, most urgent first. The context behind
 
 ## Before judging (deadline 17:30 Casablanca)
 
-- [ ] **Merge PR #6.** Check that the new **CI** workflow (`.github/workflows/ci.yml`) is green on [Enhso/viva#6](https://github.com/Enhso/viva/pull/6), then merge to `main`. It is the first CI run this repo has had, so if it fails, the log says which of typecheck, test, build or `check:api` failed.
+- [ ] **Merge PR #6.** Check that the new **CI** workflow (`.github/workflows/ci.yml`) is green on [Enhso/viva#6](https://github.com/Enhso/viva/pull/6), then merge to `main`. It is the first CI run this repo has had, so if it fails, the log says which of typecheck, test, build or `check:api` failed. If no `CI` check appears on the PR at all, enable GitHub Actions under the repo's Settings → Actions → General (right after the push at 14:45, only Vercel's check was listed).
 - [ ] **Verify GitHub OAuth on the production alias** (ticket 23's last box; OAuth works nowhere else):
   - Run both flows: "Connect GitHub" (`public_repo`), then "Also include private repos" (`repo`).
   - Check public and private repo listing.
