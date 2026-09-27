@@ -184,6 +184,56 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+/* Selection screen (08): begin ---------------------------------------------------------- */
+.selection-controls {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+.selection-controls .field__input {
+  width: 100%;
+}
+.help-box {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+}
+.help-box__heading {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+.help-box__provisional {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+.fixture-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.fixture__complexity {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+/* The cutoff is a positional marker, not a highlighted-top/greyed-rest split (02 §3): every
+   card renders identically regardless of where it falls relative to N. */
+.fixture-cutoff {
+  margin: var(--space-2) 0;
+  padding: var(--space-1) var(--space-2);
+  border-top: 2px dashed var(--accent);
+  border-bottom: 2px dashed var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+/* Selection screen (08): end ------------------------------------------------------------- */
+
 /* Code */
 .code {
   margin: 0;
