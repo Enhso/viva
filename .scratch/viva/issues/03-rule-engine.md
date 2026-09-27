@@ -17,3 +17,5 @@
 - [ ] Test-first; the fallback pipeline test stays green.
 
 ## Comments
+
+Note (2026-09-27): Hatim approved property-based tests (fast-check, fixed seed) for engine laws; see the decision in ticket 09's Comments. Law for this ticket: every candidate mutant parses, and the same source yields the same candidate ids in the same order. The first ticket to need fast-check installs it with `npm install -D fast-check`.

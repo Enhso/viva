@@ -21,3 +21,5 @@
 ## Comments
 
 Ruling: typed answers are read as JS literals, anything unparseable is read as a bare string, and the reveal shows the reading — this keeps type distinctions (`5` vs `"5"`) that JS comprehension turns on, without punishing a student who types `Free` unquoted — cost if wrong: a student who means the string "5" must type the quotes. (R4, approved by Hatim at breakdown review, 2026-09-26.)
+
+Note (2026-09-27): Hatim approved property-based tests (fast-check, fixed seed) for engine laws; see the decision in ticket 09's Comments. Law for this ticket: a prediction equal to the original's output never grades right on a distinguishing input. The first ticket to need fast-check installs it with `npm install -D fast-check`.
