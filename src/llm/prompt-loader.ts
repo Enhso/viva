@@ -1,13 +1,12 @@
 // Loads the filter prompt + its output contract (03 §2, ticket 06). `prompts/filter/vNNN.md`
 // files are Hatim's (README.md); this module only reads them, never writes.
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
-// src/llm -> repo root is two levels up.
-const repoRoot = resolve(moduleDir, "..", "..");
-const filterDir = join(repoRoot, "prompts", "filter");
+// Resolved from the working directory, not this module's location: Vercel runs functions with the
+// project root as cwd and copies `prompts/filter/**` there (vercel.json `includeFiles`), and a
+// bundled function no longer sits at src/llm/. Tests and scripts run from the repo root too.
+const filterDir = join(process.cwd(), "prompts", "filter");
 const contractPath = join(filterDir, "_output-contract.md");
 
 const VERSION_PATTERN = /^v(\d+)\.md$/;

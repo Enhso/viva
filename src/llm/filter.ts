@@ -1,8 +1,8 @@
 // The filter call (03 §2, ticket 06): build the prompt, run the provider chain, validate the
 // response against `_output-contract.md`. A malformed or incomplete response counts as that
 // provider failing (checklist item) and the chain moves on.
-import { PROVIDER_CHAIN, ProviderChainError } from "./providers";
-import type { FilterCallSuccess, FilterRequest, FilterResult, LoadedCandidate, ProviderFailure, RejectedCandidate } from "./types";
+import { PROVIDER_CHAIN, ProviderChainError, type ProviderLink } from "./providers.js";
+import type { FilterCallSuccess, FilterRequest, FilterResult, LoadedCandidate, ProviderFailure, RejectedCandidate } from "./types.js";
 
 export interface FilterPromptText {
   promptText: string;
@@ -105,29 +105,29 @@ export function parseFilterResponse(raw: string, request: FilterRequest): Filter
 
 /**
  * Runs the chain in priority order (NVIDIA -> Gemini -> OpenRouter). A network failure, a
- * missing key, or a response that fails `parseFilterResponse` all count as that provider
- * failing and move on. Throws `ProviderChainError` (every failure, with reasons) when the
- * whole chain is exhausted — the caller runs fallback mode.
+ * timeout, or a response that fails `parseFilterResponse` all count as that provider failing
+ * and move on. A provider whose key env var is unset is still called, without an auth header:
+ * in cloud sessions a proxy may inject credentials (CLAUDE.md); elsewhere it fails with the
+ * provider's own 401, and the reason names the unset variable. Throws `ProviderChainError`
+ * (every failure, with reasons) when the whole chain is exhausted — the caller runs fallback mode.
  */
 export async function runFilterCall(
   request: FilterRequest,
   prompt: FilterPromptText,
   env: Record<string, string | undefined> = process.env,
+  chain: ProviderLink[] = PROVIDER_CHAIN,
 ): Promise<FilterCallSuccess> {
   const fullPrompt = buildFilterPrompt(prompt, request);
   const failures: ProviderFailure[] = [];
 
-  for (const link of PROVIDER_CHAIN) {
-    const apiKey = env[link.envVar];
-    if (!apiKey) {
-      failures.push({ provider: link.provider, model: link.model, reason: `${link.envVar} is not set` });
-      continue;
-    }
+  for (const link of chain) {
+    const apiKey = env[link.envVar] || undefined;
+    const keyNote = apiKey ? "" : `${link.envVar} is not set; `;
     let raw: string;
     try {
       raw = await link.call(fullPrompt, apiKey);
     } catch (error) {
-      failures.push({ provider: link.provider, model: link.model, reason: error instanceof Error ? error.message : String(error) });
+      failures.push({ provider: link.provider, model: link.model, reason: `${keyNote}${error instanceof Error ? error.message : String(error)}` });
       continue;
     }
     try {
@@ -145,4 +145,4 @@ export async function runFilterCall(
   throw new ProviderChainError(failures);
 }
 
-export { ProviderChainError } from "./providers";
+export { ProviderChainError } from "./providers.js";

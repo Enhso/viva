@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildFilterPrompt, parseFilterResponse } from "./filter";
+import { buildFilterPrompt, parseFilterResponse, runFilterCall } from "./filter";
+import { ProviderChainError, type ProviderLink } from "./providers";
 import type { FilterRequest } from "./types";
 
 // Test prompts live outside prompts/filter/, which is Hatim's (prompts/filter/README.md).
@@ -123,5 +124,66 @@ describe("parseFilterResponse (offline, against recorded response shapes)", () =
     });
 
     expect(() => parseFilterResponse(recorded, request)).toThrow(/missing a label/);
+  });
+});
+
+describe("runFilterCall (the provider chain, with fake links)", () => {
+  const valid = JSON.stringify({
+    functions: [
+      {
+        function_id: "sumRange",
+        candidates: [
+          { candidate_id: "sumRange:relational-flip:40", verdict: "loaded", label: "off-by-one", reason: "subtle" },
+          { candidate_id: "sumRange:relational-flip:80", verdict: "rejected", reason: "obvious" },
+        ],
+      },
+    ],
+  });
+
+  function link(provider: string, reply: () => Promise<string>, seenKeys: (string | undefined)[] = []): ProviderLink {
+    return {
+      provider,
+      model: `${provider}-model`,
+      envVar: `${provider.toUpperCase()}_KEY`,
+      call: (_prompt, apiKey) => {
+        seenKeys.push(apiKey);
+        return reply();
+      },
+    };
+  }
+
+  it("moves past a provider that throws or answers off-contract, and names the one that served", async () => {
+    const chain = [
+      link("down", () => Promise.reject(new Error("503"))),
+      link("garbled", () => Promise.resolve("not json")),
+      link("good", () => Promise.resolve(valid)),
+    ];
+
+    const outcome = await runFilterCall(request, samplePrompt, { DOWN_KEY: "k", GARBLED_KEY: "k", GOOD_KEY: "k" }, chain);
+
+    expect(outcome.provider).toBe("good");
+    expect(outcome.model).toBe("good-model");
+    expect(outcome.result.loaded.map((c) => c.candidateId)).toEqual(["sumRange:relational-flip:40"]);
+  });
+
+  it("still calls a provider whose key env var is unset, without a key (a proxy may inject credentials)", async () => {
+    const seenKeys: (string | undefined)[] = [];
+    const outcome = await runFilterCall(request, samplePrompt, {}, [link("proxied", () => Promise.resolve(valid), seenKeys)]);
+
+    expect(outcome.provider).toBe("proxied");
+    expect(seenKeys).toEqual([undefined]);
+  });
+
+  it("reports every failure, naming an unset key, once the chain is exhausted", async () => {
+    const chain = [link("down", () => Promise.reject(new Error("401 unauthorized"))), link("garbled", () => Promise.resolve("{}"))];
+
+    const failure = await runFilterCall(request, samplePrompt, { GARBLED_KEY: "k" }, chain).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ProviderChainError);
+    const { failures } = failure as ProviderChainError;
+    expect(failures.map((f) => f.provider)).toEqual(["down", "garbled"]);
+    expect(failures[0].reason).toContain("DOWN_KEY is not set");
+    expect(failures[0].reason).toContain("401 unauthorized");
+    expect(failures[1].reason).toMatch(/^invalid response/);
   });
 });

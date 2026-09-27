@@ -1,9 +1,11 @@
 // The filter call's serverless endpoint (03 §2, ticket 06). Holds the provider keys; the
 // browser sends selected functions + candidates, this returns loaded (labeled) mutants and
 // rejected candidates, or a labelled fallback with the reason.
-import { loadLatestFilterPrompt } from "../src/llm/prompt-loader";
-import { ProviderChainError, runFilterCall } from "../src/llm/filter";
-import type { FilterApiResponse, FilterRequest } from "../src/llm/types";
+// Relative imports carry `.js`: package.json is `"type": "module"`, and Node's ESM loader on
+// Vercel resolves no extensionless specifiers. TypeScript maps `.js` back to the `.ts` source.
+import { loadLatestFilterPrompt } from "../src/llm/prompt-loader.js";
+import { ProviderChainError, runFilterCall } from "../src/llm/filter.js";
+import type { FilterApiResponse, FilterRequest } from "../src/llm/types.js";
 
 interface VercelRequest {
   method?: string;
