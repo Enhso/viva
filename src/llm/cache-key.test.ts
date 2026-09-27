@@ -61,4 +61,18 @@ describe("buildFilterCacheKey", () => {
     const changedMeta = { ...meta, promptVersion: "v005" };
     expect(await buildFilterCacheKey(request, changedMeta)).not.toBe(await buildFilterCacheKey(request, meta));
   });
+
+  // Ticket 13: editing prompts/triage/vNNN.md can change which candidates survive an
+  // over-threshold function's shrink without the browser's request changing at all.
+  it("misses when the triage prompt (hash) changes", async () => {
+    const withTriage = { ...meta, triagePromptHash: "triage-hash-1" };
+    const changedTriage = { ...meta, triagePromptHash: "triage-hash-2" };
+    expect(await buildFilterCacheKey(request, withTriage)).not.toBe(await buildFilterCacheKey(request, changedTriage));
+  });
+
+  it("misses when no triage prompt exists yet versus when one does", async () => {
+    const withoutTriage = { ...meta, triagePromptHash: null };
+    const withTriage = { ...meta, triagePromptHash: "triage-hash-1" };
+    expect(await buildFilterCacheKey(request, withoutTriage)).not.toBe(await buildFilterCacheKey(request, withTriage));
+  });
 });

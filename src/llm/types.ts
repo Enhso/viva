@@ -54,23 +54,53 @@ export interface FilterCallSuccess {
 }
 
 /**
+ * One over-threshold function's triage call (ticket 13, 03 §4): which provider/model shrank it,
+ * and how many candidates went in versus survived to the main filter call.
+ */
+export interface TriageFunctionOutcome {
+  functionId: string;
+  provider: string;
+  model: string;
+  candidatesIn: number;
+  candidatesOut: number;
+}
+
+/**
+ * Whether the triage call fired for this viva, and the per-function detail — recorded on every
+ * `FilterApiResponse` (live or fallback) for the disclosure and the candidate log (ticket 13
+ * checklist: "whether triage fired is recorded per viva"). `fired: false` (functions: []) is the
+ * overwhelmingly common case — most student functions never generate enough raw candidates to
+ * trip the threshold (03 §4).
+ */
+export interface TriageSummary {
+  fired: boolean;
+  functions: TriageFunctionOutcome[];
+}
+
+/**
  * What a cache key must cover (ticket 14, brief §3.2): the prompt text, the output contract, and
  * the provider chain's model ids — anything the server knows and the browser doesn't. The
  * functions' sources and candidate lists are already in the `FilterRequest` the browser holds.
  * `promptVersion` alone isn't enough (Hatim can edit a `vNNN.md` file in place without bumping
  * its number), so `promptHash`/`contractHash` are hashes of the actual file text.
+ *
+ * `triagePromptHash` (ticket 13): editing `prompts/triage/vNNN.md`, or nothing existing there yet,
+ * changes which candidates survive an over-threshold function's shrink even though the browser's
+ * `FilterRequest` is unchanged — so it must be part of the key too, or a stale cache entry could
+ * outlive a triage-prompt edit. `null` when no triage prompt exists on disk.
  */
 export interface FilterCacheMeta {
   promptVersion: string;
   promptHash: string;
   contractHash: string;
   chainSignature: string;
+  triagePromptHash?: string | null;
 }
 
 /** What the browser gets back from `POST /api/filter`: either a live result, or a labelled fallback. */
 export type FilterApiResponse =
-  | ({ mode: "live"; cacheMeta?: FilterCacheMeta } & FilterCallSuccess)
-  | { mode: "fallback"; reason: string; failures?: ProviderFailure[]; cacheMeta?: FilterCacheMeta };
+  | ({ mode: "live"; cacheMeta?: FilterCacheMeta; triage?: TriageSummary } & FilterCallSuccess)
+  | { mode: "fallback"; reason: string; failures?: ProviderFailure[]; cacheMeta?: FilterCacheMeta; triage?: TriageSummary };
 
 /**
  * `POST /api/filter { metaOnly: true }` (ticket 14): returns the cache-key ingredients without

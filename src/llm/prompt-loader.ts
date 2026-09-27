@@ -9,6 +9,11 @@ import { join } from "node:path";
 const filterDir = join(process.cwd(), "prompts", "filter");
 const contractPath = join(filterDir, "_output-contract.md");
 
+// The triage prompt (ticket 13, 03 §4): its own versioned directory, separate from Hatim's
+// prompts/filter/ (agent-authored, open to his overrule — prompts/triage/README.md).
+const triageDir = join(process.cwd(), "prompts", "triage");
+const triageContractPath = join(triageDir, "_output-contract.md");
+
 const VERSION_PATTERN = /^v(\d+)\.md$/;
 
 export interface FilterPrompt {
@@ -71,4 +76,33 @@ export function loadFilterPromptFile(path: string): FilterPrompt {
   const contractText = readFileSync(contractPath, "utf8");
   const base = path.split(/[/\\]/).pop() ?? path;
   return { version: base.replace(/\.md$/, ""), promptText, contractText };
+}
+
+/**
+ * The highest-numbered `prompts/triage/vNNN.md` plus its own output contract (ticket 13). Same
+ * "load, never write" contract as `loadLatestFilterPrompt`, over the triage directory instead.
+ * Returns null when no triage prompt exists on disk — the caller decides what that means (an
+ * over-threshold function with no triage prompt to shrink it is a total failure, not a silent
+ * mechanical truncation: 03 §4 rejected that).
+ */
+export function loadLatestTriagePrompt(): FilterPrompt | null {
+  let entries: string[];
+  try {
+    entries = readdirSync(triageDir);
+  } catch {
+    return null;
+  }
+
+  const versions = entries
+    .map((name) => name.match(VERSION_PATTERN))
+    .filter((match): match is RegExpMatchArray => match !== null)
+    .map((match) => ({ file: match[0], number: Number.parseInt(match[1], 10) }))
+    .sort((a, b) => b.number - a.number);
+
+  const latest = versions[0];
+  if (!latest) return null;
+
+  const promptText = readFileSync(join(triageDir, latest.file), "utf8");
+  const contractText = readFileSync(triageContractPath, "utf8");
+  return { version: latest.file.replace(/\.md$/, ""), promptText, contractText };
 }
