@@ -13,12 +13,18 @@ export const CALIBRATION_BUCKETS: readonly CalibrationBucket[] = [
 /** Fixed for every student and every viva (07 §3). */
 export const CONFIDENCE_THRESHOLD = 50;
 
+// Every beat is free text for now; ticket 18 adds multiple choice as a second value. Recorded
+// per beat (ticket 16) so the report and ticket 18/19 have a field to read instead of assuming.
+export type BeatFormat = "free-text";
+
 export interface BeatResult {
   beat: Beat;
   /** The prediction as the student typed it. */
   prediction: string;
   /** How the typed prediction was read (10 §description): a literal value or a thrown error. */
   reading: PredictionReading;
+  /** How the student answered this beat (ticket 18 adds "multiple-choice"). */
+  format: BeatFormat;
   /** Percent, 0–100 at 0.1% precision, never rounded. */
   confidence: number;
   correct: boolean;
@@ -42,5 +48,5 @@ export function gradeBeat(beat: Beat, prediction: string, confidence: number): B
     : correct ? "uncertain-right" : "uncertain-wrong";
   const probability = confidence / 100;
   const brier = correct ? (1 - probability) ** 2 : probability ** 2;
-  return { beat, prediction, reading, confidence, correct, bucket, brier };
+  return { beat, prediction, reading, format: "free-text", confidence, correct, bucket, brier };
 }

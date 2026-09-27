@@ -46,6 +46,12 @@ describe("gradeBeat", () => {
     expect(() => gradeBeat(beat, "3", NaN)).toThrow(RangeError);
   });
 
+  // Ticket 16: multiple choice is ticket 18's; for now every beat is asked and recorded as
+  // free text, so the report and ticket 18/19 have a field to read instead of assuming.
+  it("records the answer format, free text for now", () => {
+    expect(gradeBeat(beat, "3", 80).format).toBe("free-text");
+  });
+
   it("records how the prediction was read", () => {
     expect(gradeBeat(beat, " 3 ", 80).reading).toEqual({ kind: "returned", value: 3 });
     expect(gradeBeat(beat, "throws TypeError", 80).reading).toEqual({ kind: "threw", errorName: "TypeError" });

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { generateCandidateMutants } from "./mutate";
 import { extractFunctions } from "./extract";
 import { runLiveViva } from "./live";
+import { BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION } from "./pacing";
 import { createNodeRunner } from "./sandbox/node-runner";
 
 const sumRangeSource = readFileSync(
@@ -44,5 +45,54 @@ describe("live viva on pre-filtered, labeled mutants", () => {
     );
 
     expect(viva.beats).toHaveLength(0);
+  });
+
+  // Ticket 16: viva length is bounded by K (beats per mutant) and M (mutants per function),
+  // both single-sourced in pacing.ts (08).
+  it("asks at most K beats for a mutant with more distinguishing inputs than K", async () => {
+    const fn = extractFunctions(sumRangeSource).find((candidate) => candidate.name === "sumRange")!;
+    const [candidate] = generateCandidateMutants(fn); // relational-flip: 42 distinguishing inputs on the battery
+
+    const viva = await runLiveViva(
+      { source: sumRangeSource, functionName: "sumRange" },
+      [{ candidate, taxonomyLabel: "off-by-one" }],
+      createNodeRunner(),
+    );
+
+    expect(viva.beats.length).toBe(BEATS_PER_MUTANT);
+  });
+
+  it("asks at most M mutants of one function, even when more survive", async () => {
+    const fn = extractFunctions(sumRangeSource).find((candidate) => candidate.name === "sumRange")!;
+    const candidates = generateCandidateMutants(fn); // 5 candidates, all non-equivalent on this fixture
+    expect(candidates.length).toBeGreaterThan(MUTANTS_PER_FUNCTION);
+
+    const viva = await runLiveViva(
+      { source: sumRangeSource, functionName: "sumRange" },
+      candidates.map((candidate) => ({ candidate, taxonomyLabel: "off-by-one" })),
+      createNodeRunner(),
+    );
+
+    const askedMutantIds = new Set(viva.beats.map((beat) => beat.mutant.id));
+    expect(askedMutantIds.size).toBe(MUTANTS_PER_FUNCTION);
+    expect(viva.beats).toHaveLength(MUTANTS_PER_FUNCTION * BEATS_PER_MUTANT);
+  });
+
+  it("keeps beats of one mutant consecutive, in source order, before moving to the next mutant", async () => {
+    const fn = extractFunctions(sumRangeSource).find((candidate) => candidate.name === "sumRange")!;
+    const candidates = generateCandidateMutants(fn);
+
+    const viva = await runLiveViva(
+      { source: sumRangeSource, functionName: "sumRange" },
+      candidates.map((candidate) => ({ candidate, taxonomyLabel: "off-by-one" })),
+      createNodeRunner(),
+    );
+
+    const seenIds: string[] = [];
+    for (const beat of viva.beats) {
+      if (seenIds[seenIds.length - 1] !== beat.mutant.id) seenIds.push(beat.mutant.id);
+    }
+    // No mutant id reappears after the run has moved past it -- consecutive, never interleaved.
+    expect(new Set(seenIds).size).toBe(seenIds.length);
   });
 });
