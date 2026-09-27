@@ -1,1 +1,6 @@
 code_hash,candidate_label,survived_filter,question_asked,prompt_version,source
+e8e1292319444dc30784f63a86271738a2cd0ae1a2de95d755d552badabd20ec,Off-by-one,true,false,v004,lab
+fc6617a1fde4231d3368cb547e740a0937cb414d16291b96eeb1cc970c493b36,,false,false,v004,lab
+f49c3797904ad737168f424dfd31a635632921ef3322a30b25c7e0441d2fcf49,,false,false,v004,lab
+076ef06ced0027fed586cc8e7ff67023a7872c78ed93ba00453d72890ad7b17c,Missing return value,true,false,v004,lab
+b0d0f940076322e4d3f34e0b2f181bb8a3db7ff961b3c657798b2d4a01f7af6b,Infinite loop,true,false,v004,lab

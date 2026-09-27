@@ -1,0 +1,60 @@
+{
+  "provider": "nvidia",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "result": {
+    "loaded": [
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:relational-flip:73-74:0",
+        "label": "Off-by-one",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": "Fencepost error",
+          "is_subtle": true
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:return-deletion:109-122:0",
+        "label": "Missing return value",
+        "checklist": {
+          "concept_domain": "Control Flow",
+          "alternative_label": "Undefined return",
+          "is_subtle": true
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:loop-bound-change:80-83:0",
+        "label": "Infinite loop",
+        "checklist": {
+          "concept_domain": "Control Flow",
+          "alternative_label": "Non-terminating loop",
+          "is_subtle": true
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:off-by-one-literal:46-47:0",
+        "reason": "Initializing total to 1 causes consistent overcount by 1; easily spotted by checking initial value or testing with zero-range input.",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": null,
+          "is_subtle": false
+        }
+      },
+      {
+        "functionId": "sumRange:sumRange",
+        "candidateId": "sumRange:off-by-one-literal:46-47:1",
+        "reason": "Initializing total to -1 causes consistent undercount by 1; easily spotted by checking initial value or testing with known sums.",
+        "checklist": {
+          "concept_domain": "Boundary Conditions",
+          "alternative_label": null,
+          "is_subtle": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "version": "v004",
+  "compareVersion": null,
+  "provider": "nvidia",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "generatedAt": "2026-09-27T12:28:10.287Z",
+  "fixtures": [
+    {
+      "file": "sumRange",
+      "provider": "nvidia",
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "cached": false,
+      "functions": [
+        {
+          "functionId": "sumRange:sumRange",
+          "name": "sumRange",
+          "signature": "sumRange(start, end)",
+          "docstring": "/**\n * Adds up every whole number from start to end, inclusive.\n * @param {number} start\n * @param {number} end\n * @returns {number}\n */",
+          "candidates": [
+            {
+              "candidateId": "sumRange:relational-flip:73-74:0",
+              "rule": "relational-flip",
+              "diff": {
+                "line": 3,
+                "before": "  for (let i = start; i < end; i++) {",
+                "after": "  for (let i = start; i <= end; i++) {"
+              },
+              "verdict": "loaded",
+              "label": "Off-by-one",
+              "reason": null,
+              "checklist": {
+                "concept_domain": "Boundary Conditions",
+                "alternative_label": "Fencepost error",
+                "is_subtle": true
+              },
+              "equivalent": false,
+              "distinguishingInputCount": 42
+            },
+            {
+              "candidateId": "sumRange:off-by-one-literal:46-47:0",
+              "rule": "off-by-one-literal",
+              "diff": {
+                "line": 2,
+                "before": "  let total = 0;",
+                "after": "  let total = 1;"
+              },
+              "verdict": "rejected",
+              "label": null,
+              "reason": "Initializing total to 1 causes consistent overcount by 1; easily spotted by checking initial value or testing with zero-range input.",
+              "checklist": {
+                "concept_domain": "Boundary Conditions",
+                "alternative_label": null,
+                "is_subtle": false
+              },
+              "equivalent": null,
+              "distinguishingInputCount": null
+            },
+            {
+              "candidateId": "sumRange:off-by-one-literal:46-47:1",
+              "rule": "off-by-one-literal",
+              "diff": {
+                "line": 2,
+                "before": "  let total = 0;",
+                "after": "  let total = -1;"
+              },
+              "verdict": "rejected",
+              "label": null,
+              "reason": "Initializing total to -1 causes consistent undercount by 1; easily spotted by checking initial value or testing with known sums.",
+              "checklist": {
+                "concept_domain": "Boundary Conditions",
+                "alternative_label": null,
+                "is_subtle": false
+              },
+              "equivalent": null,
+              "distinguishingInputCount": null
+            },
+            {
+              "candidateId": "sumRange:return-deletion:109-122:0",
+              "rule": "return-deletion",
+              "diff": {
+                "line": 6,
+                "before": "  return total;",
+                "after": "  return;"
+              },
+              "verdict": "loaded",
+              "label": "Missing return value",
+              "reason": null,
+              "checklist": {
+                "concept_domain": "Control Flow",
+                "alternative_label": "Undefined return",
+                "is_subtle": true
+              },
+              "equivalent": false,
+              "distinguishingInputCount": 81
+            },
+            {
+              "candidateId": "sumRange:loop-bound-change:80-83:0",
+              "rule": "loop-bound-change",
+              "diff": {
+                "line": 3,
+                "before": "  for (let i = start; i < end; i++) {",
+                "after": "  for (let i = start; i < end; i--) {"
+              },
+              "verdict": "loaded",
+              "label": "Infinite loop",
+              "reason": null,
+              "checklist": {
+                "concept_domain": "Control Flow",
+                "alternative_label": "Non-terminating loop",
+                "is_subtle": true
+              },
+              "equivalent": false,
+              "distinguishingInputCount": 36
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scopeCheck": [
+    {
+      "file": "Counter.jsx",
+      "rejected": true,
+      "reasons": [
+        "Counter: jsx"
+      ]
+    },
+    {
+      "file": "getWeather.js",
+      "rejected": true,
+      "reasons": [
+        "getWeather: network"
+      ]
+    },
+    {
+      "file": "toggleMenu.js",
+      "rejected": true,
+      "reasons": [
+        "toggleMenu: dom"
+      ]
+    }
+  ],
+  "counts": {
+    "candidates": 5,
+    "loaded": 3,
+    "rejected": 2,
+    "loadedButEquivalent": 0
+  }
+}
