@@ -2,7 +2,9 @@ import { sharedBattery } from "./battery";
 import { extractFunctions } from "./extract";
 import { generateCandidateMutants } from "./mutate";
 import { distinguishes } from "./distinguish";
+import { buildBeatsForMutant, MULTIPLE_CHOICE_SEED } from "./multiple-choice";
 import { BEATS_PER_MUTANT } from "./pacing";
+import { createPrng } from "./prng";
 import { inferParamShapes } from "./shapes";
 import type { SandboxRunner } from "./sandbox/types";
 import { targetedSearch } from "./targeted-search";
@@ -36,16 +38,17 @@ export async function runFallbackViva({ source, functionName }: FallbackVivaRequ
 
   const battery = sharedBattery(fn);
   const drops: EquivalentDrop[] = [];
-  for (const candidate of generateCandidateMutants(fn)) {
+  const allCandidates = generateCandidateMutants(fn);
+  const random = createPrng(MULTIPLE_CHOICE_SEED);
+  for (const candidate of allCandidates) {
     const answerKey = await findDistinguishingInputs(fn, candidate, battery, runner);
     if (answerKey.length === 0) {
       drops.push({ mutant: candidate, reason: EQUIVALENT_DROP_REASON });
       continue;
     }
     const mutant = { ...candidate, answerKey, taxonomyLabel: null };
-    const beats = answerKey
-      .slice(0, BEATS_PER_MUTANT)
-      .map((entry, index) => ({ id: `${mutant.id}#${index}`, function: fn, mutant, ...entry }));
+    const otherCandidates = allCandidates.filter((other) => other.id !== candidate.id);
+    const beats = await buildBeatsForMutant(fn, mutant, answerKey.slice(0, BEATS_PER_MUTANT), otherCandidates, runner, random);
     return { mode: "fallback", beats, drops };
   }
   return { mode: "fallback", beats: [], drops };

@@ -63,11 +63,22 @@ export interface SurvivingMutant extends CandidateMutant {
   taxonomyLabel: string | null;
 }
 
+/** How the student answered a beat (05 §3, ticket 18). */
+export type BeatFormat = "free-text" | "multiple-choice";
+
 /** One predict-then-reveal cycle for a single distinguishing input of a single mutant. */
 export interface Beat extends AnswerKeyEntry {
   id: string;
   function: EligibleFunction;
   mutant: SurvivingMutant;
+  format: BeatFormat;
+  /**
+   * Present only when `format` is "multiple-choice" (05 §4): the correct output plus real
+   * distractors — other candidate mutants' actual outputs on this same input — already shuffled
+   * by the app's own PRNG. `options[correctOptionIndex]` is `mutantOutput` by reference.
+   */
+  options?: RunOutcome[];
+  correctOptionIndex?: number;
 }
 
 export type VivaMode = "live" | "cached" | "fallback";

@@ -44,6 +44,7 @@ function beat(id: string, fn: EligibleFunction, m: SurvivingMutant, input: unkno
     input,
     originalOutput: { kind: "returned", value: originalValue },
     mutantOutput: { kind: "returned", value: mutantValue },
+    format: "free-text",
   };
 }
 

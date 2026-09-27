@@ -1,4 +1,4 @@
-import { sameOutput, type Beat } from "../engine";
+import { sameOutput, type Beat, type BeatFormat } from "../engine";
 import { readPrediction, type PredictionReading } from "./read-prediction";
 
 export type CalibrationBucket = "confidently-right" | "confidently-wrong" | "uncertain-right" | "uncertain-wrong";
@@ -13,9 +13,10 @@ export const CALIBRATION_BUCKETS: readonly CalibrationBucket[] = [
 /** Fixed for every student and every viva (07 §3). */
 export const CONFIDENCE_THRESHOLD = 50;
 
-// Every beat is free text for now; ticket 18 adds multiple choice as a second value. Recorded
-// per beat (ticket 16) so the report and ticket 18/19 have a field to read instead of assuming.
-export type BeatFormat = "free-text";
+// Ticket 18: the format ("free-text" or "multiple-choice") is decided per beat when the beat is
+// built (engine/multiple-choice.ts), not here -- grading just reads it off the beat, so this is
+// a re-export of the engine's own type rather than a second definition of the same union.
+export type { BeatFormat };
 
 export interface BeatResult {
   beat: Beat;
@@ -48,5 +49,5 @@ export function gradeBeat(beat: Beat, prediction: string, confidence: number): B
     : correct ? "uncertain-right" : "uncertain-wrong";
   const probability = confidence / 100;
   const brier = correct ? (1 - probability) ** 2 : probability ** 2;
-  return { beat, prediction, reading, format: "free-text", confidence, correct, bucket, brier };
+  return { beat, prediction, reading, format: beat.format, confidence, correct, bucket, brier };
 }

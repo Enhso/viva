@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { generateCandidateMutants } from "./mutate";
 import { extractFunctions } from "./extract";
 import { runLiveViva } from "./live";
+import { sameOutput } from "./outputs";
 import { BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION } from "./pacing";
 import { createNodeRunner } from "./sandbox/node-runner";
 
@@ -94,5 +95,34 @@ describe("live viva on pre-filtered, labeled mutants", () => {
     }
     // No mutant id reappears after the run has moved past it -- consecutive, never interleaved.
     expect(new Set(seenIds).size).toBe(seenIds.length);
+  });
+
+  // Ticket 18: distractors draw from every candidate mutant, including ones the filter call
+  // never loaded -- exercised here by loading only the first candidate but leaving the fixture's
+  // other (unloaded) candidates in place for the distractor pool to draw from.
+  it("gives every beat a format and, for multiple-choice, valid options drawn from real candidate outputs", async () => {
+    const fn = extractFunctions(sumRangeSource).find((candidate) => candidate.name === "sumRange")!;
+    const [candidate] = generateCandidateMutants(fn);
+
+    const viva = await runLiveViva(
+      { source: sumRangeSource, functionName: "sumRange" },
+      [{ candidate, taxonomyLabel: "off-by-one" }],
+      createNodeRunner(),
+    );
+
+    for (const beat of viva.beats) {
+      expect(["free-text", "multiple-choice"]).toContain(beat.format);
+    }
+    const mcqBeats = viva.beats.filter((beat) => beat.format === "multiple-choice");
+    expect(mcqBeats.length).toBeGreaterThan(0); // this fixture's fixed seed lands at least one here
+    for (const beat of mcqBeats) {
+      const options = beat.options!;
+      expect(options[beat.correctOptionIndex!]).toEqual(beat.mutantOutput);
+      for (let i = 0; i < options.length; i++) {
+        for (let j = i + 1; j < options.length; j++) {
+          expect(sameOutput(options[i], options[j])).toBe(false);
+        }
+      }
+    }
   });
 });
