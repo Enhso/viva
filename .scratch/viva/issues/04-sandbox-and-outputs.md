@@ -27,3 +27,5 @@ An output is either a returned value of any JS type or a thrown error. Each has 
 ## Comments
 
 Ruling: a timeout never counts as a distinguishing output; a thrown error does — a timeout cannot be verified as non-termination (the code might finish later), while a thrown error is deterministic and predictable — cost if wrong: infinite-loop mutants never become beats, losing "this never returns" as a prediction. (R3, approved by Hatim at breakdown review, 2026-09-26.)
+
+Note (2026-09-27): Hatim approved property-based tests (fast-check, fixed seed) for engine laws; see the decision in ticket 09's Comments. Law for this ticket: output equality is reflexive and symmetric and ignores plain-object key order. The first ticket to need fast-check installs it with `npm install -D fast-check`.
