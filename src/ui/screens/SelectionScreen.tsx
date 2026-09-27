@@ -28,9 +28,43 @@ function orderFixtures(fixtures: DemoFixture[]): OrderedFixture[] {
   });
 }
 
-export function SelectionScreen({ loading, onStart }: { loading: boolean; onStart: (selected: DemoFixture[]) => void }) {
+export interface RejectedEntry {
+  path: string;
+  name: string;
+  /** Already the human-readable reason shown to the student — the demo corpus's own scope-check codes are mapped to it below. */
+  reason: string;
+}
+
+const DEFAULT_REJECTED: RejectedEntry[] = REJECTED_FIXTURES.map((rejection) => ({
+  path: rejection.path,
+  name: rejection.name,
+  reason: SCOPE_REASON_LABEL[rejection.reason],
+}));
+
+/**
+ * Ticket 23: the demo corpus and a connected GitHub repo are two interchangeable sources for
+ * this same screen ("keep the demo fixtures available alongside a connected repo") — the caller
+ * (`App.tsx`, the ingestion entry point) picks which one is live and passes its fixtures/rejected
+ * list plus a label for the source heading. Omitting these keeps the screen's original demo-only
+ * behavior.
+ */
+export function SelectionScreen({
+  loading,
+  onStart,
+  fixtures = DEMO_FIXTURES,
+  rejected = DEFAULT_REJECTED,
+  sourceLabel,
+  sourceNote,
+}: {
+  loading: boolean;
+  onStart: (selected: DemoFixture[]) => void;
+  fixtures?: DemoFixture[];
+  rejected?: RejectedEntry[];
+  sourceLabel?: string;
+  sourceNote?: string;
+}) {
   const t = useT();
-  const ordered = useMemo(() => orderFixtures(DEMO_FIXTURES), []);
+  const ordered = useMemo(() => orderFixtures(fixtures), [fixtures]);
   const total = ordered.length;
   const [n, setN] = useState(() => Math.min(3, total));
 
@@ -70,8 +104,8 @@ export function SelectionScreen({ loading, onStart }: { loading: boolean; onStar
       </div>
 
       <div className="source">
-        <h3 className="source__name">{t("start.source.demo")}</h3>
-        <p className="muted">{t("start.source.demoNote")}</p>
+        <h3 className="source__name">{sourceLabel ?? t("start.source.demo")}</h3>
+        <p className="muted">{sourceNote ?? t("start.source.demoNote")}</p>
         <ol className="fixture-list">
           {ordered.map(({ fixture, score }, index) => (
             <Fragment key={`${fixture.path}#${fixture.functionName}`}>
@@ -92,15 +126,15 @@ export function SelectionScreen({ loading, onStart }: { loading: boolean; onStar
         </ol>
       </div>
 
-      {REJECTED_FIXTURES.length > 0 && (
+      {rejected.length > 0 && (
         <div className="source">
           <h3 className="source__name">{t("start.rejected.heading")}</h3>
           <ul className="fixture-list">
-            {REJECTED_FIXTURES.map((rejection) => (
+            {rejected.map((rejection) => (
               <li key={`${rejection.path}#${rejection.name}`} className="fixture fixture--rejected">
                 <code className="fixture__name">{rejection.name || rejection.path}</code>
                 <span className="fixture__path muted">{rejection.path}</span>
-                <span className="fixture__reason">{t("start.rejected.reason", { reason: SCOPE_REASON_LABEL[rejection.reason] })}</span>
+                <span className="fixture__reason">{t("start.rejected.reason", { reason: rejection.reason })}</span>
               </li>
             ))}
           </ul>
