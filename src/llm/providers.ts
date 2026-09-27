@@ -12,11 +12,19 @@ export interface ProviderLink {
 }
 
 /**
- * Ruling: each provider gets 60 s before the chain moves on, so three slow providers stay
+ * Ruling: each provider gets 75 s before the chain moves on, so three slow providers stay
  * inside the serverless function's default duration — cost if wrong: a slow-but-working
- * provider is abandoned for the next one.
+ * provider is abandoned for the next one. Measured 2026-09-27 on a real three-function request
+ * (42 candidates, ~4.9k prompt tokens): NVIDIA 52.8 s, Gemini 12.7 s, OpenRouter 44.2 s.
  */
-export const PROVIDER_TIMEOUT_MS = 60_000;
+export const PROVIDER_TIMEOUT_MS = 75_000;
+
+// All three models reason before answering by default, which ran past the timeout on a real
+// request (.scratch/providers.md, 2026-09-27 afternoon). The filter call wants a JSON verdict
+// per candidate, so each link turns reasoning off or down.
+const NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b";
+const GEMINI_MODEL = "gemini-3.8-flash";
+const OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 function jsonHeaders(auth: Record<string, string> | null): Record<string, string> {
   return { "Content-Type": "application/json", ...auth };
@@ -40,9 +48,10 @@ async function callNvidia(prompt: string, apiKey: string | undefined): Promise<s
     headers: jsonHeaders(bearer(apiKey)),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     body: JSON.stringify({
-      model: "openai/gpt-oss-20b",
+      model: NVIDIA_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 4096,
+      max_tokens: 16384,
+      chat_template_kwargs: { enable_thinking: false },
     }),
   });
   if (!res.ok) throw new Error(`NVIDIA integrate.api.nvidia.com ${res.status}: ${await safeText(res)}`);
@@ -53,11 +62,14 @@ async function callNvidia(prompt: string, apiKey: string | undefined): Promise<s
 }
 
 async function callGemini(prompt: string, apiKey: string | undefined): Promise<string> {
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: jsonHeaders(apiKey ? { "x-goog-api-key": apiKey } : null),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json", thinkingConfig: { thinkingLevel: "low" } },
+    }),
   });
   if (!res.ok) throw new Error(`Gemini generativelanguage.googleapis.com ${res.status}: ${await safeText(res)}`);
   const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] };
@@ -76,8 +88,9 @@ async function callOpenRouter(prompt: string, apiKey: string | undefined): Promi
     headers: jsonHeaders(bearer(apiKey)),
     signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     body: JSON.stringify({
-      model: "nvidia/nemotron-3-super-120b-a12b:free",
+      model: OPENROUTER_MODEL,
       messages: [{ role: "user", content: prompt }],
+      reasoning: { enabled: false },
     }),
   });
   if (!res.ok) throw new Error(`OpenRouter openrouter.ai ${res.status}: ${await safeText(res)}`);
@@ -88,9 +101,9 @@ async function callOpenRouter(prompt: string, apiKey: string | undefined): Promi
 }
 
 export const PROVIDER_CHAIN: ProviderLink[] = [
-  { provider: "nvidia", model: "openai/gpt-oss-20b", envVar: "NVIDIA_API_KEY", call: callNvidia },
-  { provider: "gemini", model: "gemini-3.8-flash", envVar: "GEMINI_API_KEY", call: callGemini },
-  { provider: "openrouter", model: "nvidia/nemotron-3-super-120b-a12b:free", envVar: "OPENROUTER_API_KEY", call: callOpenRouter },
+  { provider: "nvidia", model: NVIDIA_MODEL, envVar: "NVIDIA_API_KEY", call: callNvidia },
+  { provider: "gemini", model: GEMINI_MODEL, envVar: "GEMINI_API_KEY", call: callGemini },
+  { provider: "openrouter", model: OPENROUTER_MODEL, envVar: "OPENROUTER_API_KEY", call: callOpenRouter },
 ];
 
 export class ProviderChainError extends Error {
