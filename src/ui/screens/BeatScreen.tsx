@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { renderCall, renderOutput, type Beat } from "../../engine";
+import { renderOutput, type Beat } from "../../engine";
 import { MutantCode } from "../CodeBlock";
 import { ConfidenceWidget } from "../ConfidenceWidget";
-import { describeOutput, useT } from "../strings";
+import { beatQuestion, describeOutput, useT } from "../strings";
 
 export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (prediction: string, confidence: number) => void }) {
   const t = useT();
@@ -19,7 +19,7 @@ export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (predicti
     <section className="screen">
       <MutantCode beat={beat} />
       <h2 className="question">
-        <code>{t("beat.question", { call: renderCall(beat.function.name, beat.input) })}</code>
+        <code>{beatQuestion(beat, t)}</code>
       </h2>
       <form className="answer" onSubmit={submit}>
         <div className="field">

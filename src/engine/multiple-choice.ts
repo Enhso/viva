@@ -32,14 +32,13 @@ export const MAX_MULTIPLE_CHOICE_OPTIONS = 4;
  * Weighted-random format draw (05 §3): `draw` in [0, 1) from the app's PRNG, `freeTextWeight`
  * the probability of free-text (pacing.ts's FIRST_/LATER_BEAT_FREE_TEXT_WEIGHT).
  *
- * Ruling: a "function"/"timeout" correct output can never be offered as multiple-choice. Its
- * canonical text ("a function" / "times out", strings/index.ts) isn't one of the literal shapes
- * 10's `readPrediction` reads back into that same RunOutcome kind -- it falls through to a bare
- * string, so even picking the *correct* option would be graded wrong. Free-text has no such gap
- * (it already round-trips values and "throws X" errors), so it's always the safe fallback here.
+ * Ruling: a "timeout" correct output can never be offered as multiple-choice (it can't be one at
+ * all since ticket 04's R3 fix, so this is a guard): its canonical text isn't a literal 10's
+ * `readPrediction` reads back into that kind, so even the *correct* pick would grade wrong. A
+ * returned function needs no guard since ticket 17: it's observed as a plain array of three calls.
  */
 export function chooseBeatFormat(freeTextWeight: number, draw: number, correctOutput: RunOutcome): BeatFormat {
-  if (correctOutput.kind === "returnedFunction" || correctOutput.kind === "timeout") return "free-text";
+  if (correctOutput.kind === "timeout") return "free-text";
   return draw < freeTextWeight ? "free-text" : "multiple-choice";
 }
 

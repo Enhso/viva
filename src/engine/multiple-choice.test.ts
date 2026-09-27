@@ -27,13 +27,8 @@ describe("chooseBeatFormat", () => {
     expect(chooseBeatFormat(0.8, 0.9, VALUE_OUTPUT)).toBe("multiple-choice");
   });
 
-  // Ruling (18): a "function"/"timeout" outcome's canonical text can't be read back by 10's
-  // grader into that same RunOutcome kind, so picking the *correct* MCQ option there would
-  // wrongly grade as incorrect. Free text has no such gap, so it's forced regardless of the draw.
-  it("forces free-text for a returnedFunction output, even on a multiple-choice draw", () => {
-    expect(chooseBeatFormat(0.8, 0.99, { kind: "returnedFunction" })).toBe("free-text");
-  });
-
+  // Ruling (18): a timeout's canonical text can't be read back by 10's grader into that kind,
+  // so picking the *correct* MCQ option there would grade wrong. Free text is forced.
   it("forces free-text for a timeout output, even on a multiple-choice draw", () => {
     expect(chooseBeatFormat(0.8, 0.99, { kind: "timeout" })).toBe("free-text");
   });

@@ -39,6 +39,10 @@ export const en = {
   "selection.begin": "Start viva with these {n} functions",
 
   "beat.question": "{call} → ?",
+  // Ticket 17: when the original returns a function, the beat asks about calling it
+  // RETURNED_FUNCTION_CALLS times instead of the plain "→ ?" — {count} is that same constant, so
+  // this wording can't drift from how many times the sandbox actually calls it.
+  "beat.question.returnsFunction": "{call} returns a function; calling it {count} times gives?",
   "beat.prediction.label": "Your prediction",
   "beat.prediction.hint": "A JavaScript value: 42, \"text\", true, null. For an error: throws TypeError.",
   "beat.confidence.label": "Confidence you're right (%)",
@@ -94,7 +98,6 @@ export const en = {
   // Canonical-rendering copy (04 §3): the engine hands back a structured kind (outputs.ts's
   // CanonicalRendering), never these words directly, so this table is the one place they live.
   "output.timeout": "times out",
-  "output.function": "a function",
   "output.error": "throws {errorName}",
 
   "error.noMutant": "No mutant of {name} changed its output on the default inputs, so there is nothing to ask.",
