@@ -28,13 +28,16 @@ const runOutcome: fc.Arbitrary<RunOutcome> = fc.oneof(
   fc.constant<RunOutcome>({ kind: "timeout" }),
 );
 
+// Fixed seed, per Hatim's property-testing decision (ticket 09 Comments): a failure reproduces.
+const SEED = { seed: 20260927 };
+
 describe("output equality (04's law: reflexive, symmetric, ignores plain-object key order)", () => {
   it("is reflexive", () => {
-    fc.assert(fc.property(runOutcome, (outcome) => sameOutput(outcome, outcome)));
+    fc.assert(fc.property(runOutcome, (outcome) => sameOutput(outcome, outcome)), SEED);
   });
 
   it("is symmetric", () => {
-    fc.assert(fc.property(runOutcome, runOutcome, (a, b) => sameOutput(a, b) === sameOutput(b, a)));
+    fc.assert(fc.property(runOutcome, runOutcome, (a, b) => sameOutput(a, b) === sameOutput(b, a)), SEED);
   });
 
   it("ignores plain-object key order", () => {
@@ -43,6 +46,7 @@ describe("output equality (04's law: reflexive, symmetric, ignores plain-object 
         const reversed = Object.fromEntries(Object.entries(record).reverse());
         return sameOutput({ kind: "returned", value: record }, { kind: "returned", value: reversed });
       }),
+      SEED,
     );
   });
 
