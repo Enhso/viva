@@ -291,6 +291,63 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+/* Confidence widget (ticket 05) — begin */
+.confidence {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+.confidence__control {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.confidence__slider {
+  width: 100%;
+}
+.confidence__nudge {
+  font: inherit;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+.confidence__nudge:hover {
+  border-color: var(--accent);
+}
+.confidence__box {
+  max-width: 10rem;
+}
+.confidence__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.confidence__legend-item {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.confidence__legend-item:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+/* Confidence widget (ticket 05) — end */
+
 /* Reveal */
 .verdict {
   font-size: 1.4rem;
