@@ -26,7 +26,6 @@ const runOutcome: fc.Arbitrary<RunOutcome> = fc.oneof(
   jsValue.map((value): RunOutcome => ({ kind: "returned", value })),
   fc.constantFrom("TypeError", "RangeError", "Error").map((errorName): RunOutcome => ({ kind: "threw", errorName })),
   fc.constant<RunOutcome>({ kind: "timeout" }),
-  fc.constant<RunOutcome>({ kind: "returnedFunction" }),
 );
 
 describe("output equality (04's law: reflexive, symmetric, ignores plain-object key order)", () => {
@@ -85,9 +84,8 @@ describe("canonical rendering", () => {
     expect(renderOutput({ kind: "threw", errorName: "TypeError" })).toEqual({ kind: "error", errorName: "TypeError" });
   });
 
-  it("renders a timeout and a returned function as fixed, structured kinds (no baked-in copy)", () => {
+  it("renders a timeout as a fixed, structured kind (no baked-in copy)", () => {
     expect(renderOutput({ kind: "timeout" })).toEqual({ kind: "timeout" });
-    expect(renderOutput({ kind: "returnedFunction" })).toEqual({ kind: "function" });
   });
 
   it("renders a returned value as its canonical text", () => {

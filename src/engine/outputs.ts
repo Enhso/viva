@@ -8,7 +8,6 @@ import type { RunOutcome } from "./sandbox/types";
  */
 export type CanonicalRendering =
   | { kind: "value"; text: string }
-  | { kind: "function" }
   | { kind: "error"; errorName: string }
   | { kind: "timeout" };
 
@@ -18,8 +17,6 @@ export function renderOutput(outcome: RunOutcome): CanonicalRendering {
       return { kind: "timeout" };
     case "threw":
       return { kind: "error", errorName: outcome.errorName };
-    case "returnedFunction":
-      return { kind: "function" };
     case "returned":
       return { kind: "value", text: canonicalText(outcome.value) };
   }
@@ -65,7 +62,6 @@ export function sameOutput(a: RunOutcome, b: RunOutcome): boolean {
   if (a.kind !== b.kind) return false;
   switch (a.kind) {
     case "timeout":
-    case "returnedFunction":
       return true;
     case "threw":
       return a.errorName === (b as typeof a).errorName;

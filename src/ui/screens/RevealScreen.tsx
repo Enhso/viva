@@ -1,7 +1,7 @@
-import { renderCall, renderOutput } from "../../engine";
+import { renderOutput } from "../../engine";
 import type { BeatResult } from "../../grading";
 import { MutantCode } from "../CodeBlock";
-import { describeOutput, useT } from "../strings";
+import { beatQuestion, describeOutput, useT } from "../strings";
 
 export function RevealScreen({ result, isLast, onNext }: { result: BeatResult; isLast: boolean; onNext: () => void }) {
   const t = useT();
@@ -10,7 +10,7 @@ export function RevealScreen({ result, isLast, onNext }: { result: BeatResult; i
     <section className="screen">
       <MutantCode beat={beat} />
       <h2 className="question">
-        <code>{t("beat.question", { call: renderCall(beat.function.name, beat.input) })}</code>
+        <code>{beatQuestion(beat, t)}</code>
       </h2>
       <p className={result.correct ? "verdict verdict--right" : "verdict verdict--wrong"}>
         {t(result.correct ? "reveal.right" : "reveal.wrong")}

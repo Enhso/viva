@@ -78,13 +78,35 @@ describe("Node sandbox runner", () => {
     expect(first).toEqual(second);
   });
 
-  it("renders a returned function as a fixed outcome instead of failing to clone it", async () => {
-    const outcome = await runner.run({
-      source: "function makeCounter() { return function inner() {}; }",
-      functionName: "makeCounter",
-      input: [],
-    });
+  it("calls a directly-returned function three times and reports the results as an array (17)", async () => {
+    const source = "function makeCounter(start) { let count = start; return function () { count++; return count; }; }";
 
-    expect(outcome).toEqual({ kind: "returnedFunction" });
+    const outcome = await runner.run({ source, functionName: "makeCounter", input: [5] });
+
+    expect(outcome).toEqual({ kind: "returned", value: [6, 7, 8], calledReturnedFunction: true });
+  });
+
+  it("a returned function that throws when called reports the thrown error, not an array (17)", async () => {
+    const source = "function makeThrower() { return function () { throw new TypeError('nope'); }; }";
+
+    const outcome = await runner.run({ source, functionName: "makeThrower", input: [] });
+
+    expect(outcome).toEqual({ kind: "threw", errorName: "TypeError" });
+  });
+
+  it("a returned function that never returns when called times out, not an array (17)", async () => {
+    const source = "function makeSpinner() { return function () { while (true) {} }; }";
+
+    const outcome = await runner.run({ source, functionName: "makeSpinner", input: [] });
+
+    expect(outcome).toEqual({ kind: "timeout" });
+  });
+
+  it("a function nested inside another returned value is still not called, and still fails to clone (17)", async () => {
+    const source = "function makePair() { return [function () {}, function () {}]; }";
+
+    const outcome = await runner.run({ source, functionName: "makePair", input: [] });
+
+    expect(outcome).toMatchObject({ kind: "threw" });
   });
 });

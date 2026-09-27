@@ -1,6 +1,6 @@
 // Runs inside a Web Worker. invocationBody (types.ts) carries the network/randomness hardening;
 // this file only has to keep this runner's observable outcomes matching the Node runner's (04 §2).
-import { invocationBody, isReturnedFunction, thrownOutcome, type RunOutcome, type RunRequest } from "./types";
+import { invocationBody, returnedFunctionCalls, thrownOutcome, type RunOutcome, type RunRequest } from "./types";
 import type { WorkerMessage } from "./worker-runner";
 
 function send(message: WorkerMessage): void {
@@ -20,7 +20,8 @@ self.onmessage = (event: MessageEvent<RunRequest>) => {
   let outcome: RunOutcome;
   try {
     const value: unknown = new Function("__input", invocationBody(source, functionName))(input);
-    outcome = isReturnedFunction(value) ? { kind: "returnedFunction" } : { kind: "returned", value };
+    const calls = returnedFunctionCalls(value);
+    outcome = calls ? { kind: "returned", value: calls, calledReturnedFunction: true } : { kind: "returned", value };
   } catch (error) {
     outcome = thrownOutcome(error);
   }

@@ -1,12 +1,22 @@
-/** What one execution of a function on one input observably did. */
+/**
+ * What one execution of a function on one input observably did.
+ *
+ * A directly-returned function can't cross the structured-clone/postMessage boundary either
+ * runner uses, so (ticket 17) both runners call it `RETURNED_FUNCTION_CALLS` times with no
+ * arguments *inside* the sandboxed script, before that boundary, and report the list of results
+ * as an ordinary `"returned"` array — `calledReturnedFunction: true` is set only so the beat's
+ * wording can name what's being predicted; grading and equality ignore it and compare `value`
+ * exactly as they would for any other array. If one of those calls throws or times out, the
+ * whole run reports that instead (04's rules), same as if the top-level call itself had. A
+ * function *nested* inside another returned value (e.g. an array of functions) is never called —
+ * only a directly-returned function is — and still fails to clone, reported as a thrown
+ * `DataCloneError`.
+ */
 export type RunOutcome =
-  | { kind: "returned"; value: unknown }
-  // A returned function can't cross the structured-clone/postMessage boundary either runner uses,
-  // so both runners detect it before cloning and report this fixed outcome instead (04 §2; ticket
-  // 17 gives it a richer rendering). Ruling: the thrown message never counts either — V8 (Node) and
-  // the browser's engine word errors differently, so comparing messages would make the two runners
-  // (and the distinguishing check) disagree on code that behaves identically; errorName is stable.
-  | { kind: "returnedFunction" }
+  | { kind: "returned"; value: unknown; calledReturnedFunction?: true }
+  // Ruling: the thrown message never counts either — V8 (Node) and the browser's engine word
+  // errors differently, so comparing messages would make the two runners (and the distinguishing
+  // check) disagree on code that behaves identically; errorName is stable.
   | { kind: "threw"; errorName: string }
   | { kind: "timeout" };
 
@@ -54,14 +64,40 @@ globalThis.WebSocket = undefined;
 Date.now = function () { return ${FIXED_TIME_MS}; };
 `;
 
+// Ticket 17: the call protocol for a directly-returned function, one named constant so the
+// sandbox's own call loop, the beat's wording ("calling it {count} times"), and nothing else
+// (the distinguishing check and grading just see the resulting array, generically) can't drift
+// apart on how many times "three times" actually is.
+export const RETURNED_FUNCTION_CALLS = 3;
+
+// An internal marker key, not something student code could plausibly produce by accident, so the
+// runners can tell "this object is the sandbox's own report of calling a returned function
+// RETURNED_FUNCTION_CALLS times" apart from a function that plainly returns an object of its own.
+const RETURNED_FUNCTION_MARKER = "__vivaReturnedFunctionCalls";
+
 /** Function body that declares the student's function and calls it with the `__input` array. Shared by both runners. */
 export function invocationBody(source: string, functionName: string): string {
-  return `${SANDBOX_PREAMBLE}\n${source}\nreturn ${functionName}(...__input);`;
+  return `${SANDBOX_PREAMBLE}
+${source}
+var __result = ${functionName}(...__input);
+if (typeof __result === "function") {
+  var __calls = [];
+  for (var __i = 0; __i < ${RETURNED_FUNCTION_CALLS}; __i++) { __calls.push(__result()); }
+  return { ${JSON.stringify(RETURNED_FUNCTION_MARKER)}: true, calls: __calls };
+}
+return __result;`;
 }
 
-/** True for any value that cannot cross the structured-clone/postMessage boundary a run's result travels over. */
-export function isReturnedFunction(value: unknown): boolean {
-  return typeof value === "function";
+/**
+ * If `value` is the sandbox's own marker object reporting a directly-returned function's call
+ * results (ticket 17), returns those results; otherwise null. Both runners check this on the raw
+ * value the script returned, before it crosses the structured-clone/postMessage boundary.
+ */
+export function returnedFunctionCalls(value: unknown): unknown[] | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (record[RETURNED_FUNCTION_MARKER] !== true) return null;
+  return record.calls as unknown[];
 }
 
 export function thrownOutcome(error: unknown): RunOutcome {
