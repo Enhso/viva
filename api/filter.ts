@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const prompt = loadLatestFilterPrompt();
     const response: FilterMetaApiResponse = prompt
       ? { available: true, meta: await buildCacheMeta(prompt.version, prompt.promptText, prompt.contractText) }
-      : { available: false, reason: "the filter prompt hasn't been written yet" };
+      : { available: false, reason: "filter-prompt-missing" };
     res.status(200).json(response);
     return;
   }
@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // clearly labelled act rather than an unexplained outage. It wins over a cache hit too — the
   // browser never checks its cache when this is set (src/llm/client.ts `callFilterApiCached`).
   if (rawBody.forceFallback) {
-    const response: FilterApiResponse = { mode: "fallback", reason: "forced by the demo switch" };
+    const response: FilterApiResponse = { mode: "fallback", reason: { code: "demo-switch" } };
     res.status(200).json(response);
     return;
   }
@@ -79,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const prompt = loadLatestFilterPrompt();
   if (!prompt) {
-    const response: FilterApiResponse = { mode: "fallback", reason: "the filter prompt hasn't been written yet" };
+    const response: FilterApiResponse = { mode: "fallback", reason: { code: "filter-prompt-missing" } };
     res.status(200).json(response);
     return;
   }
@@ -92,10 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const response: FilterApiResponse = { mode: "live", cacheMeta, ...outcome };
     res.status(200).json(response);
   } catch (error) {
+    // Both branches are a provider's own failure text, kept verbatim in `detail` (never routed
+    // through the string table) — only the surrounding code is static chrome (ticket 24).
     const response: FilterApiResponse =
       error instanceof ProviderChainError
-        ? { mode: "fallback", reason: error.message, failures: error.failures, cacheMeta }
-        : { mode: "fallback", reason: error instanceof Error ? error.message : String(error), cacheMeta };
+        ? { mode: "fallback", reason: { code: "provider-chain-failed", detail: error.message }, failures: error.failures, cacheMeta }
+        : { mode: "fallback", reason: { code: "provider-chain-failed", detail: error instanceof Error ? error.message : String(error) }, cacheMeta };
     res.status(200).json(response);
   }
 }

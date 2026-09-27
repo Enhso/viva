@@ -97,10 +97,29 @@ export interface FilterCacheMeta {
   triagePromptHash?: string | null;
 }
 
+/**
+ * Why a viva (or one function within a served viva) ran in fallback mode, as a code the UI maps
+ * through the string table (ticket 24) rather than a hardcoded English sentence. `detail`, when
+ * present, is a provider's own error text or a caught error's message — verbatim, never itself
+ * translated (08 §2: dynamic content stays as-is; only the surrounding chrome is static).
+ */
+export type FallbackReasonCode =
+  | "demo-switch"
+  | "filter-prompt-missing"
+  | "provider-chain-failed"
+  | "filter-endpoint-unreachable"
+  | "no-mutant-loaded"
+  | "all-mutants-equivalent";
+
+export interface FallbackReason {
+  code: FallbackReasonCode;
+  detail?: string;
+}
+
 /** What the browser gets back from `POST /api/filter`: either a live result, or a labelled fallback. */
 export type FilterApiResponse =
   | ({ mode: "live"; cacheMeta?: FilterCacheMeta; triage?: TriageSummary } & FilterCallSuccess)
-  | { mode: "fallback"; reason: string; failures?: ProviderFailure[]; cacheMeta?: FilterCacheMeta; triage?: TriageSummary };
+  | { mode: "fallback"; reason: FallbackReason; failures?: ProviderFailure[]; cacheMeta?: FilterCacheMeta; triage?: TriageSummary };
 
 /**
  * `POST /api/filter { metaOnly: true }` (ticket 14): returns the cache-key ingredients without

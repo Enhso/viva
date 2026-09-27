@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { estimateBeatCount, orderByComplexity, BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION } from "../../engine";
-import { DEMO_FIXTURES, REJECTED_FIXTURES, SCOPE_REASON_LABEL, type DemoFixture } from "../demo-fixtures";
-import { useT } from "../strings";
+import { DEMO_FIXTURES, REJECTED_FIXTURES, type DemoFixture, type ScopeRejectionReason } from "../demo-fixtures";
+import { LANGUAGE_NAME, useT, VISIBLE_LANGUAGES, type Language } from "../strings";
 
 interface OrderedFixture {
   fixture: DemoFixture;
@@ -31,15 +31,11 @@ function orderFixtures(fixtures: DemoFixture[]): OrderedFixture[] {
 export interface RejectedEntry {
   path: string;
   name: string;
-  /** Already the human-readable reason shown to the student — the demo corpus's own scope-check codes are mapped to it below. */
-  reason: string;
+  /** A reason code; its words come from the string table (`scope.<reason>`, ticket 24). */
+  reason: ScopeRejectionReason | "not-eligible-file";
 }
 
-const DEFAULT_REJECTED: RejectedEntry[] = REJECTED_FIXTURES.map((rejection) => ({
-  path: rejection.path,
-  name: rejection.name,
-  reason: SCOPE_REASON_LABEL[rejection.reason],
-}));
+const DEFAULT_REJECTED: RejectedEntry[] = REJECTED_FIXTURES;
 
 /**
  * Ticket 23: the demo corpus and a connected GitHub repo are two interchangeable sources for
@@ -51,6 +47,8 @@ const DEFAULT_REJECTED: RejectedEntry[] = REJECTED_FIXTURES.map((rejection) => (
 export function SelectionScreen({
   loading,
   onStart,
+  language,
+  onLanguageChange,
   fixtures = DEMO_FIXTURES,
   rejected = DEFAULT_REJECTED,
   sourceLabel,
@@ -58,6 +56,8 @@ export function SelectionScreen({
 }: {
   loading: boolean;
   onStart: (selected: DemoFixture[]) => void;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
   fixtures?: DemoFixture[];
   rejected?: RejectedEntry[];
   sourceLabel?: string;
@@ -73,6 +73,24 @@ export function SelectionScreen({
   return (
     <section className="screen">
       <p className="lede">{t("app.tagline")}</p>
+
+      <fieldset className="language-picker">
+        <legend>{t("selection.language.heading")}</legend>
+        {VISIBLE_LANGUAGES.map((code) => (
+          <label key={code} className="language-picker__option">
+            <input
+              type="radio"
+              name="language"
+              value={code}
+              checked={language === code}
+              disabled={loading}
+              onChange={() => onLanguageChange(code)}
+            />
+            {LANGUAGE_NAME[code]}
+          </label>
+        ))}
+      </fieldset>
+
       <h2>{t("selection.heading")}</h2>
 
       <div className="selection-controls">
@@ -134,7 +152,7 @@ export function SelectionScreen({
               <li key={`${rejection.path}#${rejection.name}`} className="fixture fixture--rejected">
                 <code className="fixture__name">{rejection.name || rejection.path}</code>
                 <span className="fixture__path muted">{rejection.path}</span>
-                <span className="fixture__reason">{t("start.rejected.reason", { reason: rejection.reason })}</span>
+                <span className="fixture__reason">{t("start.rejected.reason", { reason: t(`scope.${rejection.reason}`) })}</span>
               </li>
             ))}
           </ul>

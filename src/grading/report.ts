@@ -1,10 +1,6 @@
 import { renderCall, renderOutput, type Beat, type MutationRule, type VivaMode } from "../engine";
-import { describeOutput, translate } from "../ui/strings";
+import { describeOutput, translate, type Language } from "../ui/strings";
 import { CALIBRATION_BUCKETS, type BeatResult, type CalibrationBucket } from "./grade";
-
-// Tier 1 report text is generated ahead of the language layer (ticket 24), which threads a
-// selected language through the report; fixed to "en" here in the meantime.
-const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate("en", key, vars);
 
 /** One beat in the report. Every field is Tier 1 (computed by execution) except taxonomyLabel. */
 export interface ReportEntry {
@@ -73,7 +69,9 @@ export interface Report {
   buckets: BucketReport[];
 }
 
-function toEntry(result: BeatResult): ReportEntry {
+type T = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => string;
+
+function toEntry(result: BeatResult, t: T): ReportEntry {
   const { beat, prediction, confidence } = result;
   return {
     change: { rule: beat.mutant.rule, ...beat.mutant.rewrite },
@@ -90,11 +88,13 @@ function toEntry(result: BeatResult): ReportEntry {
 // bucket. `keyFor` resolves a beat's exact taxonomy label to its report-group key: the
 // label-grouping result's mapped key when one was given (ticket 22), or the label itself
 // (exact-text matching, the pre-ticket-22 and no-grouping-result behavior) otherwise.
+// `t` is the chosen language's table (ticket 24).
 function groupByLabel(
   bucketResults: BeatResult[],
   labelTotals: Map<string, number>,
   withConnectingLine: boolean,
   keyFor: (label: string) => string,
+  t: T,
 ): LabelGroup[] {
   const order: (string | null)[] = [];
   const byKey = new Map<string | null, ReportEntry[]>();
@@ -105,7 +105,7 @@ function groupByLabel(
       byKey.set(key, []);
       order.push(key);
     }
-    byKey.get(key)!.push(toEntry(result));
+    byKey.get(key)!.push(toEntry(result, t));
   }
   return order.map((key) => {
     const entries = byKey.get(key)!;
@@ -126,8 +126,16 @@ function groupByLabel(
  * `labelGrouping` is optional, plain data (ticket 22): the same-concept grouping result computed
  * in src/llm/ behind the serverless function, or null when no grouping call has been made (or
  * hasn't resolved yet) -- either way the report renders, grouped by exact label text.
+ * `language` (ticket 24) is the choice made on the selection screen and held through the viva;
+ * it defaults to "en" so callers that predate the language picker keep working unchanged.
  */
-export function buildReport(results: BeatResult[], mode: VivaMode, labelGrouping: LabelGroupingInput | null = null): Report {
+export function buildReport(
+  results: BeatResult[],
+  mode: VivaMode,
+  labelGrouping: LabelGroupingInput | null = null,
+  language: Language = "en",
+): Report {
+  const t: T = (key, vars) => translate(language, key, vars);
   const bucketCounts = Object.fromEntries(CALIBRATION_BUCKETS.map((bucket) => [bucket, 0])) as Record<CalibrationBucket, number>;
   for (const result of results) bucketCounts[result.bucket] += 1;
   const meanBrier = results.length === 0 ? null : results.reduce((sum, result) => sum + result.brier, 0) / results.length;
@@ -151,7 +159,7 @@ export function buildReport(results: BeatResult[], mode: VivaMode, labelGrouping
     return {
       bucket,
       count: bucketResults.length,
-      groups: groupByLabel(bucketResults, labelTotals, bucket === "confidently-wrong", keyFor),
+      groups: groupByLabel(bucketResults, labelTotals, bucket === "confidently-wrong", keyFor, t),
     };
   });
 
