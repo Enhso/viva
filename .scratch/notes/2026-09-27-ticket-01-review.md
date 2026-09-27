@@ -22,4 +22,20 @@ Two-axis review (`/code-review`), run 2026-09-27 ~12:50 Casablanca. Line numbers
 
 ## Spec
 
-(pending)
+All D1–D10 check out in code (D3b `battery.ts:14-16`, D4b `CodeBlock.tsx:5-13`, D5c `App.tsx:82-83` + `styles.css:76-88`, D6a `ReportScreen.tsx:26-29`, D7b `en.ts:21`); fallback wording `en.ts:8-9` matches 09 §4. `npm test` 6 files / 14 tests.
+
+**(c) Implemented but wrong**
+1. **Docstring extraction picks up the wrong comment** → ticket 02. Ruling: `docstring` is "the verbatim `/** */` block directly above the declaration, or null"; 01 §6: no heuristic stand-in. `extract.ts:27-31`: when a comment ends after the function starts, `fileSource.slice(comment.end, position)` is `""`, so the adjacency check passes; any comment inside or after the function becomes its docstring. Probe: `function a(){}` then `/** doc for b */ function b(){}` gives `a` b's doc; a `/** inner */` inside a body becomes that function's docstring. The beat shows it (`CodeBlock.tsx:5`). No multi-function test exists.
+2. **Worker runner can hang silently** → ticket 04. 04 §2: "Timeout-bounded … don't let one bad mutation hang the pipeline." `worker-runner.ts:32` waits for `ready` before starting the timer and has no `onerror`; a worker that fails to load leaves the start screen on "Running your code…" forever. The ticket-01 ruling covers a slow load, not a failed one.
+
+**(a) Missing or partial**
+1. No prediction type (ticket 01 asked for "prediction" among the shared types); it's a bare `string` in `grade.ts:18,26` → ticket 10.
+2. Copy bypassing the string table: `outputs.ts:10` returns English "times out", shown by `RevealScreen.tsx:22` and `report.ts:31` → ticket 04 (canonical renderings); `fallback.ts:19` "No function named …" reaches the screen via `App.tsx:77` → ticket 06 (surfacing reasons).
+
+**(b) Not asked for (minor)**: live/cached copy and styling already written (`en.ts:10-13`, `styles.css:83-88,102-107`); wording belongs to 06/14, which may rewrite it.
+
+**Recorded elsewhere**: returned functions vs structured clone (04/17), `export function` (02), numeric-only battery (09) in ticket 01; network/randomness (04), Brier, zero-confidently-wrong, re-show code (10/19), "throws X" predictions (10) in later tickets. Consequence of the last until 10: a mutant that throws or times out can never be graded right.
+
+## Summary
+
+Standards: 4 documented-standard breaches + 6 smell groups; worst: engine English reaching the screen (`App.tsx:77`). Spec: 2 wrong, 2 partial, 1 minor creep; worst: docstring extraction attaches the wrong comment.
