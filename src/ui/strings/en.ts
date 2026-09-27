@@ -52,6 +52,15 @@ export const en = {
   "report.restart": "Start again",
 
   "rule.relational-flip": "relational operator flip",
+  "rule.equality-swap": "equality operator swap",
+  "rule.logical-flip": "logical operator flip",
+  "rule.arithmetic-swap": "arithmetic operator swap",
+  "rule.boolean-literal-flip": "boolean literal flip",
+  "rule.negation-removal": "negation removed",
+  "rule.negation-insertion": "negation inserted",
+  "rule.off-by-one-literal": "off-by-one on a literal",
+  "rule.return-deletion": "return deleted",
+  "rule.loop-bound-change": "loop bound change",
 
   // Canonical-rendering copy (04 §3): the engine hands back a structured kind (outputs.ts's
   // CanonicalRendering), never these words directly, so this table is the one place they live.

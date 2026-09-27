@@ -14,7 +14,17 @@ export interface EligibleFunction {
   docstring: string | null;
 }
 
-export type MutationRule = "relational-flip";
+export type MutationRule =
+  | "relational-flip"
+  | "equality-swap"
+  | "logical-flip"
+  | "arithmetic-swap"
+  | "boolean-literal-flip"
+  | "negation-removal"
+  | "negation-insertion"
+  | "off-by-one-literal"
+  | "return-deletion"
+  | "loop-bound-change";
 
 /** A mechanical rewrite of one syntax-tree node, produced by the rule engine. */
 export interface CandidateMutant {
