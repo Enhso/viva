@@ -9,7 +9,7 @@ The session log with per-merge detail is `2026-09-27-1300-frontier-02-06.md`. Ti
 1. Read `CLAUDE.md` and `CONTEXT.md` (use the glossary's terms, and respect its `_Avoid_` list).
 2. `git checkout claude/bold-mayer-1lnkcv && npm ci`. Then run `npm test`, `npm run typecheck` and `npm run build`; see "Final state" below for the expected counts.
 3. Decide how PR #6 reaches `main`. It is large (tickets 02–19 plus 22–24, see the table), and every ticket inside it was merged and verified on its own. GitHub OAuth (ticket 23) can only be verified on the production alias, so that check happens after the merge.
-4. Check the deployed preview; the session could not (see "Deploy").
+4. The deployed preview of PR #6 was confirmed working by Hatim at the end of the session. Re-check with the commands under "Deploy" after any change to `api/` or `vercel.json`.
 
 ## What Viva is, in one paragraph
 
