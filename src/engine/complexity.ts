@@ -22,9 +22,8 @@ const BRANCH_TYPES = new Set([
 
 /**
  * The complexity score (02 §2): a cheap, model-free heuristic computed from a function's
- * syntax tree alone. This is never the information-theoretic score — that is a property of a
- * mutant, evaluated inside the filter call, and does not exist before the LLM has looked at a
- * function's candidate mutations.
+ * syntax tree alone. It orders functions on the selection screen and nothing more: how
+ * informative a mutant is belongs to the mutant, never to a function (CONTEXT.md).
  */
 export function complexityScore(source: string): number {
   const program = parse(source, { ecmaVersion: "latest", sourceType: "module" }) as unknown as SyntaxNode;

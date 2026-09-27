@@ -12,7 +12,7 @@ const UPDATE_FLIPS: Record<string, string> = { "++": "--", "--": "++" };
 
 // Fallback mode picks the first candidate (in this order) whose output changes (fallback.ts).
 // Relational flips lead so the `sumRange` tracer-bullet demo keeps naming a relational flip
-// (Ruling, ticket 03): an off-by-one literal mutation of `total = 0` also changes that demo's
+// (Ruling, ticket 03): an off-by-one-literal candidate mutant of `total = 0` also changes that demo's
 // output and sits earlier in source order, so ordering by source position alone isn't enough.
 const RULE_PRIORITY: MutationRule[] = [
   "relational-flip",
