@@ -1,7 +1,8 @@
-import { readdirSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadLatestFilterPrompt } from "./prompt-loader";
+import { loadFilterPromptFile, loadFilterPromptVersion, loadLatestFilterPrompt } from "./prompt-loader";
 
 describe("loadLatestFilterPrompt", () => {
   it("loads the highest-numbered version under prompts/filter/ plus the output contract", () => {
@@ -15,5 +16,34 @@ describe("loadLatestFilterPrompt", () => {
       .map(Number);
     expect(prompt!.version).toBe(`v${String(Math.max(...numbers)).padStart(3, "0")}`);
     expect(prompt!.contractText).toContain("Respond with one JSON object");
+  });
+});
+
+describe("loadFilterPromptVersion", () => {
+  it("loads the named version, not just the latest", () => {
+    const prompt = loadFilterPromptVersion("v001");
+    expect(prompt).not.toBeNull();
+    expect(prompt!.version).toBe("v001");
+    expect(prompt!.contractText).toContain("Respond with one JSON object");
+  });
+
+  it("returns null for a version that doesn't exist", () => {
+    expect(loadFilterPromptVersion("v999")).toBeNull();
+  });
+});
+
+describe("loadFilterPromptFile", () => {
+  it("loads a prompt from outside prompts/filter/, paired with the fixed contract", () => {
+    const dir = mkdtempSync(join(tmpdir(), "filter-lab-test-"));
+    const path = join(dir, "candidate-prompt.md");
+    writeFileSync(path, "Audit these candidate mutations, test edition.\n");
+    try {
+      const prompt = loadFilterPromptFile(path);
+      expect(prompt.version).toBe("candidate-prompt");
+      expect(prompt.promptText).toContain("test edition");
+      expect(prompt.contractText).toContain("Respond with one JSON object");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

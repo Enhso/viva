@@ -43,3 +43,32 @@ export function loadLatestFilterPrompt(): FilterPrompt | null {
   const contractText = readFileSync(contractPath, "utf8");
   return { version: latest.file.replace(/\.md$/, ""), promptText, contractText };
 }
+
+/**
+ * Loads one specific version under `prompts/filter/` (ticket 11: filter-lab needs to run a
+ * named version, not just the latest, for `--compare` and pinned runs). Returns null when that
+ * version doesn't exist.
+ */
+export function loadFilterPromptVersion(version: string): FilterPrompt | null {
+  const file = join(filterDir, `${version}.md`);
+  let promptText: string;
+  try {
+    promptText = readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+  const contractText = readFileSync(contractPath, "utf8");
+  return { version, promptText, contractText };
+}
+
+/**
+ * Loads a prompt file from anywhere on disk, paired with the fixed output contract (ticket 11:
+ * the filter lab is verified end to end against a test prompt kept outside
+ * `prompts/filter/`, which is Hatim's — see prompts/filter/README.md).
+ */
+export function loadFilterPromptFile(path: string): FilterPrompt {
+  const promptText = readFileSync(path, "utf8");
+  const contractText = readFileSync(contractPath, "utf8");
+  const base = path.split(/[/\\]/).pop() ?? path;
+  return { version: base.replace(/\.md$/, ""), promptText, contractText };
+}
