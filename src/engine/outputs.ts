@@ -26,3 +26,8 @@ function renderValue(value: unknown): string {
 export function sameOutput(a: RunOutcome, b: RunOutcome): boolean {
   return renderOutput(a) === renderOutput(b);
 }
+
+/** A call as the student would write it, e.g. "sumRange(3, 3)". */
+export function renderCall(functionName: string, input: unknown[]): string {
+  return `${functionName}(${input.map(renderValue).join(", ")})`;
+}

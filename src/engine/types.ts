@@ -22,6 +22,8 @@ export interface CandidateMutant {
   id: string;
   functionName: string;
   rule: MutationRule;
+  /** The rewritten token, e.g. { from: "<", to: "<=" }. */
+  rewrite: { from: string; to: string };
   /** Offsets of the rewritten text within the function's source. */
   location: { start: number; end: number };
   /** The function's source with the rewrite applied. */

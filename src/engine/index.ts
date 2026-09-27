@@ -3,7 +3,7 @@
 export { extractFunctions } from "./extract";
 export { generateCandidateMutants } from "./mutate";
 export { sharedBattery } from "./battery";
-export { renderOutput, sameOutput } from "./outputs";
+export { renderCall, renderOutput, sameOutput } from "./outputs";
 export { runFallbackViva, type FallbackVivaRequest } from "./fallback";
 export * from "./sandbox/types";
 export type * from "./types";

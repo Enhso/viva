@@ -36,6 +36,7 @@ function rewrite(fn: EligibleFunction, rule: MutationRule, start: number, end: n
     id: `${fn.name}:${rule}:${start}`,
     functionName: fn.name,
     rule,
+    rewrite: { from: fn.source.slice(start, end), to: replacement },
     location: { start, end },
     source,
     diff: { line, before: fn.source.split("\n")[line - 1], after: source.split("\n")[line - 1] },
