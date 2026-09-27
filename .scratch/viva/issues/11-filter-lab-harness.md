@@ -94,3 +94,5 @@ before committing, so only the header ships.
   session's own verification with `NODE_USE_ENV_PROXY=1` in the environment; didn't add it inside
   `src/llm/providers.ts` since that's ticket 06's file and the flag is a Node/session concern, not
   a provider-chain one.
+
+Correction (orchestrator, at merge `da3cc78`): the `NODE_USE_ENV_PROXY` note above is a misdiagnosis. `NODE_OPTIONS` in this environment already routes Node's `fetch` through the proxy: the same harness reached Gemini, and the orchestrator's Node probes reached all three providers. The NVIDIA timeouts were `openai/gpt-oss-20b` reasoning past 60 s; `561f3ba` moved NVIDIA to `nemotron-3-super-120b-a12b` with thinking off. Post-merge smoke run: `npm run filter-lab -- --only sumRange` on v004 → 5 candidates, 3 loaded, 2 rejected, 0 loaded-but-equivalent (`0c330ef`).
