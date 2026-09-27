@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // Resolved from the working directory, not this module's location: Vercel runs functions with the
-// project root as cwd and copies `prompts/filter/**` there (vercel.json `includeFiles`), and a
+// project root as cwd and copies `prompts/{filter,triage}/**` there (vercel.json `includeFiles`), and a
 // bundled function no longer sits at src/llm/. Tests and scripts run from the repo root too.
 const filterDir = join(process.cwd(), "prompts", "filter");
 const contractPath = join(filterDir, "_output-contract.md");

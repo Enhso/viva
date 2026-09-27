@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/filter.ts": {
-      "includeFiles": "prompts/filter/**"
+      "includeFiles": "prompts/{filter,triage}/**"
     }
   }
 }
