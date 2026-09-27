@@ -24,12 +24,19 @@ export function canonicalizeRequest(request: FilterRequest): string {
 
 /**
  * Any change to the request (a function's source or its candidate list), the prompt text, the
- * output contract, or the provider chain's model ids (`chainSignature`) changes this hash — a
- * miss (ticket 14's first checkbox).
+ * output contract, the provider chain's model ids (`chainSignature`), or the triage prompt text
+ * (`triagePromptHash`, ticket 13 — it can change which candidates survive an over-threshold
+ * function's shrink without the request itself changing) changes this hash — a miss (ticket 14's
+ * first checkbox).
  */
 export async function buildFilterCacheKey(request: FilterRequest, meta: FilterCacheMeta): Promise<string> {
-  const material = [canonicalizeRequest(request), meta.promptVersion, meta.promptHash, meta.contractHash, meta.chainSignature].join(
-    "\u0000",
-  );
+  const material = [
+    canonicalizeRequest(request),
+    meta.promptVersion,
+    meta.promptHash,
+    meta.contractHash,
+    meta.chainSignature,
+    meta.triagePromptHash ?? "",
+  ].join("\u0000");
   return sha256Hex(material);
 }

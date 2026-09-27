@@ -4,8 +4,9 @@
 // Relative imports carry `.js`: package.json is `"type": "module"`, and Node's ESM loader on
 // Vercel resolves no extensionless specifiers. TypeScript maps `.js` back to the `.ts` source.
 import { sha256Hex } from "../src/llm/cache-key.js";
-import { loadLatestFilterPrompt } from "../src/llm/prompt-loader.js";
-import { ProviderChainError, runFilterCall } from "../src/llm/filter.js";
+import { loadLatestFilterPrompt, loadLatestTriagePrompt } from "../src/llm/prompt-loader.js";
+import { ProviderChainError } from "../src/llm/providers.js";
+import { runFilterCallWithTriage } from "../src/llm/triage.js";
 import { PROVIDER_CHAIN } from "../src/llm/providers.js";
 import type { FilterApiResponse, FilterCacheMeta, FilterMetaApiResponse, FilterRequest } from "../src/llm/types.js";
 
@@ -31,15 +32,16 @@ function isMetaOnlyBody(value: unknown): value is { metaOnly: true } {
  * Ticket 14: the cache key's ingredients that only the server knows — the prompt text, the
  * output contract, and the provider chain's model ids. Independent of which functions are
  * selected, so `{ metaOnly: true }` needs no `functions` array and never touches the chain.
+ *
+ * Ticket 13: also the triage prompt's hash (null when no triage prompt exists on disk yet) — a
+ * cache hit must miss if editing `prompts/triage/vNNN.md` could have changed the outcome.
  */
-function buildCacheMeta(promptVersion: string, promptText: string, contractText: string): Promise<FilterCacheMeta> {
+async function buildCacheMeta(promptVersion: string, promptText: string, contractText: string): Promise<FilterCacheMeta> {
   const chainSignature = PROVIDER_CHAIN.map((link) => `${link.provider}:${link.model}`).join("|");
-  return Promise.all([sha256Hex(promptText), sha256Hex(contractText)]).then(([promptHash, contractHash]) => ({
-    promptVersion,
-    promptHash,
-    contractHash,
-    chainSignature,
-  }));
+  const [promptHash, contractHash] = await Promise.all([sha256Hex(promptText), sha256Hex(contractText)]);
+  const triagePrompt = loadLatestTriagePrompt();
+  const triagePromptHash = triagePrompt ? await sha256Hex(triagePrompt.promptText) : null;
+  return { promptVersion, promptHash, contractHash, chainSignature, triagePromptHash };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -83,9 +85,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const cacheMeta = await buildCacheMeta(prompt.version, prompt.promptText, prompt.contractText);
+  const triagePrompt = loadLatestTriagePrompt();
 
   try {
-    const outcome = await runFilterCall(request, prompt);
+    const outcome = await runFilterCallWithTriage(request, prompt, triagePrompt);
     const response: FilterApiResponse = { mode: "live", cacheMeta, ...outcome };
     res.status(200).json(response);
   } catch (error) {
