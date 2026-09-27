@@ -45,6 +45,14 @@ export const en = {
   "beat.confidence.hint": "0 to 100, to one decimal place.",
   "beat.submit": "Reveal",
 
+  "confidence.decrement": "Decrease confidence by 0.1%",
+  "confidence.increment": "Increase confidence by 0.1%",
+  "confidence.legend.guessing": "Guessing",
+  "confidence.legend.leaning": "Leaning",
+  "confidence.legend.indifferent": "No real belief either way",
+  "confidence.legend.fairlySure": "Fairly sure",
+  "confidence.legend.certain": "Certain",
+
   "reveal.right": "Right.",
   "reveal.wrong": "Wrong.",
   "reveal.predicted": "You predicted",

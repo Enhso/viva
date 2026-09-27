@@ -1,21 +1,18 @@
 import { useState, type FormEvent } from "react";
 import { renderCall, type Beat } from "../../engine";
 import { MutantCode } from "../CodeBlock";
+import { ConfidenceWidget } from "../ConfidenceWidget";
 import { useT } from "../strings";
-
-// A plain number box for now; ticket 05 replaces it with the confidence widget.
-// 0–100 with at most one decimal, checked on the text so no float arithmetic touches the value.
-const CONFIDENCE_PATTERN = /^(100(\.0)?|\d{1,2}(\.\d)?)$/;
 
 export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (prediction: string, confidence: number) => void }) {
   const t = useT();
   const [prediction, setPrediction] = useState("");
-  const [confidence, setConfidence] = useState("");
-  const valid = prediction.trim() !== "" && CONFIDENCE_PATTERN.test(confidence.trim());
+  const [confidence, setConfidence] = useState(50);
+  const valid = prediction.trim() !== "" && Number.isFinite(confidence) && confidence >= 0 && confidence <= 100;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (valid) onSubmit(prediction, Number(confidence.trim()));
+    if (valid) onSubmit(prediction, confidence);
   }
 
   return (
@@ -37,20 +34,11 @@ export function BeatScreen({ beat, onSubmit }: { beat: Beat; onSubmit: (predicti
           />
           <span className="field__hint muted">{t("beat.prediction.hint")}</span>
         </label>
-        <label className="field">
+        <div className="field">
           <span className="field__label">{t("beat.confidence.label")}</span>
-          <input
-            className="field__input field__input--number"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={100}
-            step={0.1}
-            value={confidence}
-            onChange={(event) => setConfidence(event.target.value)}
-          />
+          <ConfidenceWidget valuePercent={confidence} onChange={setConfidence} />
           <span className="field__hint muted">{t("beat.confidence.hint")}</span>
-        </label>
+        </div>
         <button type="submit" disabled={!valid}>
           {t("beat.submit")}
         </button>
