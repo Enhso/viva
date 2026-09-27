@@ -10,24 +10,24 @@ The viva then runs on the loaded mutants. If a provider fails, the chain moves o
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Type:** plumbing
 **Spec:** 03 §2–3, 03 §5–6, 00 §3, 09 §4
 
-- [ ] One filter call per viva, covering all selected functions.
-- [ ] Chain order: NVIDIA → Gemini → OpenRouter `:free` (see Ruling).
-- [ ] Each provider client sends its auth header only when its key's env var is set.
-- [ ] A response that misses a given function or candidate id, repeats one, or fails to parse counts as that provider failing.
-- [ ] Every provider failing → the viva runs in fallback mode, labelled, with the reason available to the student.
-- [ ] No filter prompt present → fallback mode, with a message saying the filter prompt hasn't been written yet.
-- [ ] The app loads the highest-numbered filter prompt version unless a version is pinned (ticket 12 pins one).
-- [ ] The mode indicator shows "live" with provider and model name, or "fallback".
-- [ ] In a deployed preview, the function finds the prompt and contract files, and the force-fallback switch works and is labelled.
-- [ ] Rejected candidates and their reasons are kept beside the loaded mutants, for the report and the candidate log.
-- [ ] Parsing and validation are tested offline against recorded responses. Test prompts live outside the filter-prompt directory, which is Hatim's.
-- [ ] Verified with at least one real call to a provider that answers; provider, model, and outcome recorded here. An outage is reported with the exact error and host, never mocked.
-- [ ] Nothing under engine or grading imports from the llm layer (boundary test green).
+- [x] One filter call per viva, covering all selected functions.
+- [x] Chain order: NVIDIA → Gemini → OpenRouter `:free` (see Ruling).
+- [x] Each provider client sends its auth header only when its key's env var is set.
+- [x] A response that misses a given function or candidate id, repeats one, or fails to parse counts as that provider failing.
+- [x] Every provider failing → the viva runs in fallback mode, labelled, with the reason available to the student.
+- [x] No filter prompt present → fallback mode, with a message saying the filter prompt hasn't been written yet.
+- [x] The app loads the highest-numbered filter prompt version unless a version is pinned (ticket 12 pins one).
+- [x] The mode indicator shows "live" with provider and model name, or "fallback".
+- [ ] In a deployed preview, the function finds the prompt and contract files, and the force-fallback switch works and is labelled. — Unticked: the Vercel connector in this session gets 403 on the project's team scope, so this could not be checked from here. Unit-level equivalents pass (real NVIDIA call succeeded reading `prompts/filter/v004.md` off disk from `src/llm/prompt-loader.ts`'s repo-root-relative path; the `forceFallback` body flag was exercised directly against `api/filter.ts`'s handler). The orchestrator should check the actual preview after push — `prompts/` must ship in the Vercel function's included files for the relative-path read to resolve there.
+- [x] Rejected candidates and their reasons are kept beside the loaded mutants, for the report and the candidate log.
+- [x] Parsing and validation are tested offline against recorded responses. Test prompts live outside the filter-prompt directory, which is Hatim's.
+- [x] Verified with at least one real call to a provider that answers; provider, model, and outcome recorded here. An outage is reported with the exact error and host, never mocked.
+- [x] Nothing under engine or grading imports from the llm layer (boundary test green).
 
 ## Comments
 
@@ -35,4 +35,22 @@ Ruling: the chain is NVIDIA → Gemini → OpenRouter, and a malformed response 
 
 Context: `.scratch/providers.md` (26 Sep) found that the NVIDIA key lists models but gets 404 on inference (account not provisioned), and OpenRouter returned 402 on paid models and 429 on the free pools. Gemini was network-blocked then; the session probe now reports it reachable. Expect Gemini to be the only working provider until the accounts are fixed.
 
-Note: the filter prompt v001 is ticket 07 (Hatim's). Until it exists, the live path runs only against test prompts.
+Note: the filter prompt v001 is ticket 07 (Hatim's). Until it exists, the live path runs only against test prompts. (Superseded: by the time this ticket was built, `main` already had `prompts/filter/v001.md`–`v004.md`, so the live path ran against Hatim's real v004 wording — see Verification below.)
+
+Ruling: model ids per `.scratch/providers.md` (2026-09-27 probe) — NVIDIA `openai/gpt-oss-20b`, Gemini `gemini-3.8-flash` (`v1beta/models/…:generateContent`, `x-goog-api-key` header), OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`. Not hardcoded from training-data memory; picked from that session's live probe as instructed — cost if wrong: a provider 404s and the chain silently drops one link until an id is re-probed and swapped in `src/llm/providers.ts`.
+
+Ruling: the wire format sent to the model is the prompt file's text, then a fenced JSON block of `{ functions: [{ function_id, name, source, docstring, candidates: [{ candidate_id, rule, rewrite, diff }] }] }`, then the output contract (`src/llm/filter.ts` `buildFilterPrompt`). Candidates carry the rule/rewrite/diff, not the mutant's full rewritten source, to keep the uncapped-candidates prompt (03 §3) from ballooning — the diff line is enough context to judge loadedness. Cost if wrong: re-adding full mutant source per candidate if a prompt iteration needs more context than the diff line gives.
+
+Ruling: validation is strict both ways — an unrecognized function_id/candidate_id in the response, not just a missing one, also counts as that provider failing, on the reading that the ticket's "misses ... or repeats" describes the failure mode, not an exhaustive list, and a fabricated id is the same class of contract violation. Cost if wrong: a provider that legitimately renames an id (unlikely, ids are echoed verbatim in the contract) would be marked as failing rather than partially trusted.
+
+Ruling: the engine boundary (handoff, ticket 06 row) is kept by adding `src/engine/live.ts` (`runLiveViva`), which takes already-labeled mutants as plain data (`{ candidate, taxonomyLabel }[]`) and reuses `findDistinguishingInputs` exported from `fallback.ts`. The filter call itself, and translating engine `CandidateMutant`/`EligibleFunction` into the wire format, live in `src/ui/App.tsx` (`runViva`) and `src/llm/`, per the ticket-06 row in `.scratch/handoffs/2026-09-27-1148-ticket-01-fallback.md`. `src/architecture-boundary.test.ts` (pre-existing, generic over `engine` and `grading`) stays green with no change.
+
+Ruling: a live viva whose every loaded mutant turns out equivalent (no distinguishing input on the shared battery) falls back rather than surface zero beats — reason: "no loaded mutant of the selected function changed its output". Likewise a network-level failure to reach `/api/filter` itself (not a provider failing) degrades to fallback with its own reason, rather than the app's hard error screen. Cost if wrong: one extra fallback branch to remove if Hatim wants a harder failure surfaced instead.
+
+## Verification
+
+`npx vitest run`: 9 files, 25 tests pass (adds `src/engine/live.test.ts`, `src/llm/filter.test.ts`, `src/llm/prompt-loader.test.ts` to the 14 at handoff), including the pre-existing `architecture-boundary.test.ts`. `npx tsc -b --noEmit`: clean. `npm run build`: clean, 275 KB bundle (no `node:fs` pulled into it — the browser only imports `src/llm/client.ts`, not the prompt-loader/provider modules). A real, unmocked call through `runFilterCall` against NVIDIA (`openai/gpt-oss-20b`, `integrate.api.nvidia.com`) using the real `prompts/filter/v004.md` + `_output-contract.md` and the `sumRange` fixture succeeded: response validated, one candidate rejected with a reason and checklist (`concept_domain: "Boundary Conditions"`, `is_subtle: false`), zero loaded (the sole relational-flip candidate matched the docstring's stated boundary, so it read as not subtle to that model on that call — expected variance, not a bug). `api/filter.ts`'s handler was exercised directly (no `vercel dev`, per this ticket's mechanics note): wrong method → 405, malformed body → 400, `forceFallback: true` → 200 `{mode: "fallback", reason: "forced by the demo switch"}`. Browser-side: `vite --port 5176` + Playwright — Start screen shows the force-fallback checkbox; clicking Start viva with no `/api/filter` route present (plain `vite dev` doesn't proxy `api/`) surfaced the mode strip as "Fallback mode" with "Why: could not reach the filter endpoint: filter API returned 404" and still ran a real beat — the fetch-failure-to-fallback path, distinct from the provider-failure-to-fallback path already covered above.
+
+## Answer
+
+Built the provider chain (`src/llm/providers.ts`: NVIDIA → Gemini → OpenRouter, model ids from the 2026-09-27 probe, auth header sent only when its env var is set) and the filter call (`src/llm/filter.ts`: `buildFilterPrompt` appends a JSON block of function/candidate ids to the loaded prompt text then the output contract; `parseFilterResponse` validates every id is present exactly once and a loaded verdict carries a label, throwing — which `runFilterCall` treats as that provider failing and moves on — otherwise; `runFilterCall` runs the chain and throws `ProviderChainError` with every failure's reason once it's exhausted). `src/llm/prompt-loader.ts` loads the highest-numbered `prompts/filter/vNNN.md` plus the contract, returning `null` when none exists. `api/filter.ts` wires these together as the serverless endpoint: a `forceFallback` body flag (the demo switch) or a missing prompt short-circuit straight to a labelled fallback response before ever touching the chain; a `ProviderChainError` also becomes a labelled fallback response, never an unhandled error. On the engine side, `src/engine/live.ts` (`runLiveViva`) takes pre-filtered, labeled mutants as plain data and computes their answer keys the same way `runFallbackViva` does, dropping any that turn out equivalent — the engine still never imports `src/llm`. `src/ui/App.tsx`'s `runViva` is the orchestration point named in the ticket-01 handoff: it generates candidates, calls the filter API, maps a live result back onto engine mutants for `runLiveViva`, and falls back (with the reason shown in the mode strip, via `ModeIndicator`'s new `provider`/`model`/`reason` props) on any of: no prompt, every provider failing, a network-level failure to reach the endpoint, or every loaded mutant being equivalent. Verified live against a real NVIDIA call (see Verification). The deployed-preview checkbox (finding `prompts/` from the actual Vercel function) is left unticked per this session's Vercel-connector 403 — flagged for the orchestrator to check after push, along with whether `prompts/filter/` needs an explicit Vercel `includeFiles` entry to ship with the function.
