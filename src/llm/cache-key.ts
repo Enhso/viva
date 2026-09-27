@@ -2,7 +2,7 @@
 // server (hashing the prompt/contract text) and the browser (hashing the final key) — Web Crypto
 // (`crypto.subtle`) is available in both Node 20+ and every browser Viva targets, so this module
 // stays free of `node:crypto` and can be imported from browser-side code without pulling in fs.
-import type { FilterCacheMeta, FilterRequest } from "./types";
+import type { FilterCacheMeta, FilterRequest } from "./types.js";
 
 export async function sha256Hex(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
