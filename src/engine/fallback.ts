@@ -28,7 +28,8 @@ export async function runFallbackViva({ source, functionName }: FallbackVivaRequ
   return { mode: "fallback", beats: [] };
 }
 
-async function findDistinguishingInputs(
+/** Shared with the live path (06): the answer key for one candidate against the shared battery. */
+export async function findDistinguishingInputs(
   fn: EligibleFunction,
   mutant: CandidateMutant,
   battery: Input[],

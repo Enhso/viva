@@ -9,10 +9,13 @@ export const en = {
     "No model ran: default edge-case inputs, the first mutant that changes the output, templated wording.",
   "mode.live.label": "Live",
   "mode.live.detail": "A model chose which mutants to ask about.",
+  "mode.live.detailWithProvider": "{provider} ({model}) chose which mutants to ask about.",
+  "mode.fallback.reason": "Why: {reason}",
   "mode.cached.label": "Cached",
   "mode.cached.detail": "Replaying a saved model response for this code.",
 
   "start.heading": "Choose code to be examined on",
+  "start.forceFallback": "Force fallback mode (demo switch)",
   "start.source.demo": "Demo fixtures",
   "start.source.demoNote": "Example functions bundled with Viva, not your own repository.",
   "start.begin": "Start viva",
