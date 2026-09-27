@@ -39,3 +39,16 @@ describe("fallback viva on the sumRange fixture", () => {
     expect(viva.beats[1].originalOutput).toEqual({ kind: "returned", value: 0 });
   });
 });
+
+describe("the answer key never holds a timeout (ticket 04, R3)", () => {
+  it("drops sumRange's loop-bound mutant (i-- never ends) instead of asking about timeouts", async () => {
+    const { extractFunctions, generateCandidateMutants, findDistinguishingInputs, sharedBattery } = await import("./index");
+    const fn = extractFunctions(sumRangeSource).find((candidate) => candidate.name === "sumRange")!;
+    const loopBound = generateCandidateMutants(fn).find((mutant) => mutant.rule === "loop-bound-change")!;
+
+    const answerKey = await findDistinguishingInputs(fn, loopBound, sharedBattery(fn), createNodeRunner({ timeoutMs: 50 }));
+
+    // When `i--` terminates (start >= end, loop never runs) it returns what the original returns.
+    expect(answerKey).toEqual([]);
+  });
+});

@@ -52,7 +52,8 @@ describe("output equality (04's law: reflexive, symmetric, ignores plain-object 
     expect(sameOutput({ kind: "returned", value: 0 }, { kind: "returned", value: -0 })).toBe(false);
   });
 
-  it("never counts a timeout, and never compares thrown messages (only errorName)", () => {
+  // A timeout never distinguishes (ticket 04 R3): enforced by `distinguishes`, not by equality.
+  it("treats two timeouts as the same, and never compares thrown messages (only errorName)", () => {
     expect(sameOutput({ kind: "timeout" }, { kind: "timeout" })).toBe(true);
     expect(sameOutput({ kind: "threw", errorName: "TypeError" }, { kind: "threw", errorName: "TypeError" })).toBe(true);
     expect(sameOutput({ kind: "threw", errorName: "TypeError" }, { kind: "threw", errorName: "RangeError" })).toBe(false);

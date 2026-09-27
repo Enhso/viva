@@ -1,7 +1,7 @@
 import { sharedBattery } from "./battery";
 import { extractFunctions } from "./extract";
 import { generateCandidateMutants } from "./mutate";
-import { sameOutput } from "./outputs";
+import { distinguishes } from "./distinguish";
 import { BEATS_PER_MUTANT } from "./pacing";
 import { inferParamShapes } from "./shapes";
 import type { SandboxRunner } from "./sandbox/types";
@@ -52,6 +52,14 @@ export async function runFallbackViva({ source, functionName }: FallbackVivaRequ
 }
 
 /**
+ * Ruling (orchestrator, review fix): a timeout never distinguishes (ticket 04, R3), and each one
+ * costs a full sandbox timeout, so a mutant stops probing after this many and skips the targeted
+ * search (which would pay one timeout per run) — cost if wrong: a mutant that loops on some
+ * inputs but differs on later ones loses those beats.
+ */
+export const TIMEOUT_BUDGET = 2;
+
+/**
  * Shared with the live path (06): the answer key for one candidate against the shared battery
  * first (09 §1 step 2), falling back to a bounded, fixed-seed targeted search (step 3) only
  * when the battery distinguished nothing. An empty result here means both stages ran and found
@@ -65,12 +73,17 @@ export async function findDistinguishingInputs(
   runner: SandboxRunner,
 ): Promise<AnswerKey> {
   const answerKey: AnswerKey = [];
+  let timeouts = 0;
   for (const input of battery) {
     const originalOutput = await runner.run({ source: fn.source, functionName: fn.name, input });
     const mutantOutput = await runner.run({ source: mutant.source, functionName: fn.name, input });
-    if (!sameOutput(originalOutput, mutantOutput)) answerKey.push({ input, originalOutput, mutantOutput });
+    if (originalOutput.kind === "timeout" || mutantOutput.kind === "timeout") {
+      if (++timeouts >= TIMEOUT_BUDGET) break;
+      continue;
+    }
+    if (distinguishes(originalOutput, mutantOutput)) answerKey.push({ input, originalOutput, mutantOutput });
   }
-  if (answerKey.length > 0) return answerKey;
+  if (answerKey.length > 0 || timeouts > 0) return answerKey;
 
   const shapes = inferParamShapes(fn);
   const found = await targetedSearch(fn, mutant, shapes, runner);

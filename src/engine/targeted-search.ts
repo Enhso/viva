@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import type { ParamShape } from "./shapes";
 import type { SandboxRunner } from "./sandbox/types";
-import { sameOutput } from "./outputs";
+import { distinguishes } from "./distinguish";
 import type { AnswerKeyEntry, CandidateMutant, EligibleFunction } from "./types";
 
 // 09 §1 step 3: the per-mutant search that runs only when the shared battery distinguished
@@ -26,7 +26,7 @@ export async function targetedSearch(
     fc.asyncProperty(arbitrary, async (input) => {
       const originalOutput = await runner.run({ source: fn.source, functionName: fn.name, input });
       const mutantOutput = await runner.run({ source: mutant.source, functionName: fn.name, input });
-      return sameOutput(originalOutput, mutantOutput);
+      return !distinguishes(originalOutput, mutantOutput);
     }),
     { seed: TARGETED_SEARCH_SEED, numRuns: TARGETED_SEARCH_RUNS },
   );

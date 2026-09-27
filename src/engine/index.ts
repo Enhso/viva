@@ -9,6 +9,7 @@ export { sharedBattery } from "./battery";
 export { inferParamShapes, type ParamShape } from "./shapes";
 export { targetedSearch, TARGETED_SEARCH_SEED, TARGETED_SEARCH_RUNS } from "./targeted-search";
 export { canonicalText, renderCall, renderOutput, sameOutput, type CanonicalRendering } from "./outputs";
+export { distinguishes } from "./distinguish";
 export { runFallbackViva, findDistinguishingInputs, EQUIVALENT_DROP_REASON, type FallbackVivaRequest } from "./fallback";
 export { runLiveViva, type LiveVivaRequest, type LoadedMutant } from "./live";
 export * from "./sandbox/types";
