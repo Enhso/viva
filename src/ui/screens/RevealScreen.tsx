@@ -1,7 +1,7 @@
 import { renderCall, renderOutput } from "../../engine";
 import type { BeatResult } from "../../grading";
 import { MutantCode } from "../CodeBlock";
-import { useT } from "../strings";
+import { describeOutput, useT } from "../strings";
 
 export function RevealScreen({ result, isLast, onNext }: { result: BeatResult; isLast: boolean; onNext: () => void }) {
   const t = useT();
@@ -19,9 +19,9 @@ export function RevealScreen({ result, isLast, onNext }: { result: BeatResult; i
         <dt>{t("reveal.predicted")}</dt>
         <dd><code>{result.prediction.trim()}</code></dd>
         <dt>{t("reveal.mutantOutput")}</dt>
-        <dd><code>{renderOutput(beat.mutantOutput)}</code></dd>
+        <dd><code>{describeOutput(renderOutput(beat.mutantOutput), t)}</code></dd>
         <dt>{t("reveal.originalOutput")}</dt>
-        <dd><code>{renderOutput(beat.originalOutput)}</code></dd>
+        <dd><code>{describeOutput(renderOutput(beat.originalOutput), t)}</code></dd>
         <dt>{t("reveal.confidence")}</dt>
         <dd>{t("reveal.confidenceValue", { confidence: result.confidence })}</dd>
       </dl>

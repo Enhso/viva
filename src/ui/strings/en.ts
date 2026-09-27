@@ -53,6 +53,12 @@ export const en = {
 
   "rule.relational-flip": "relational operator flip",
 
+  // Canonical-rendering copy (04 §3): the engine hands back a structured kind (outputs.ts's
+  // CanonicalRendering), never these words directly, so this table is the one place they live.
+  "output.timeout": "times out",
+  "output.function": "a function",
+  "output.error": "throws {errorName}",
+
   "error.noMutant": "No mutant of {name} changed its output on the default inputs, so there is nothing to ask.",
   "error.failed": "The viva could not run: {message}",
 } as const;
