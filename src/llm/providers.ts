@@ -36,10 +36,19 @@ export const TRANSIENT_RETRY_DELAY_MS = 2_000;
  * provider when the overload persists.
  */
 export async function fetchWithTransientRetry(url: string, init: RequestInit, delayMs = TRANSIENT_RETRY_DELAY_MS): Promise<Response> {
-  const first = await fetch(url, init);
+  const first = await fetchNamingHost(url, init);
   if (first.status !== 429 && first.status !== 503) return first;
   await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return fetch(url, init);
+  return fetchNamingHost(url, init);
+}
+
+// A timeout or network failure names the host, like an HTTP error does (filter-lab skill §2).
+async function fetchNamingHost(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    throw new Error(`${new URL(url).host}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function jsonHeaders(auth: Record<string, string> | null): Record<string, string> {

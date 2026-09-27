@@ -25,4 +25,14 @@ describe("fetchWithTransientRetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(401);
   });
+
+  // A timeout or network error used to surface as "The operation was aborted", with no host
+  // (filter-lab skill §2: a provider failure shows the error and host).
+  it("names the host when the request itself fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("The operation was aborted due to timeout", "TimeoutError")));
+
+    await expect(fetchWithTransientRetry("https://integrate.api.nvidia.com/v1/chat/completions", {}, 0)).rejects.toThrow(
+      /integrate\.api\.nvidia\.com: The operation was aborted due to timeout/,
+    );
+  });
 });
