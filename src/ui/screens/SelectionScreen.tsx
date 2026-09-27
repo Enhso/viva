@@ -144,6 +144,12 @@ export function SelectionScreen({
         </ol>
       </div>
 
+      <button type="button" disabled={loading || n === 0} onClick={() => onStart(ordered.slice(0, n).map((entry) => entry.fixture))}>
+        {t("selection.begin", { n: String(n) })}
+      </button>
+
+      {loading && <p className="muted" role="status">{t("start.loading")}</p>}
+
       {rejected.length > 0 && (
         <div className="source">
           <h3 className="source__name">{t("start.rejected.heading")}</h3>
@@ -158,12 +164,6 @@ export function SelectionScreen({
           </ul>
         </div>
       )}
-
-      <button type="button" disabled={loading || n === 0} onClick={() => onStart(ordered.slice(0, n).map((entry) => entry.fixture))}>
-        {t("selection.begin", { n: String(n) })}
-      </button>
-
-      {loading && <p className="muted" role="status">{t("start.loading")}</p>}
     </section>
   );
 }

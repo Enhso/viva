@@ -156,25 +156,6 @@ function VivaFlow({ language, onLanguageChange }: { language: Language; onLangua
         <h1 className="brand">{t("app.title")}</h1>
         {state.screen === "start" && (
           <>
-            <label className="force-fallback">
-              <input type="checkbox" checked={forceFallback} onChange={(event) => setForceFallback(event.target.checked)} />
-              {t("start.forceFallback")}
-            </label>
-            <button
-              type="button"
-              className="clear-cache"
-              onClick={() => {
-                clearFilterCache();
-                setCacheCleared(true);
-              }}
-            >
-              {t("start.clearCache")}
-            </button>
-            {cacheCleared && <span className="clear-cache__done">{t("start.clearCacheDone")}</span>}
-            <GitHubConnect onIngested={(repo, result) => setGithubSource({ repo, result })} />
-            {githubSource && githubSource.result.eligible.length === 0 && (
-              <p className="muted">{t("github.noEligible", { repo: githubSource.repo.fullName })}</p>
-            )}
             <SelectionScreen
               key={githubSource ? githubSource.repo.fullName : "demo"}
               loading={state.loading}
@@ -186,6 +167,27 @@ function VivaFlow({ language, onLanguageChange }: { language: Language; onLangua
               sourceLabel={githubSource ? t("start.source.github", { repo: githubSource.repo.fullName }) : undefined}
               sourceNote={githubSource ? t("start.source.githubNote", { branch: githubSource.repo.defaultBranch }) : undefined}
             />
+            <GitHubConnect onIngested={(repo, result) => setGithubSource({ repo, result })} />
+            {githubSource && githubSource.result.eligible.length === 0 && (
+              <p className="muted">{t("github.noEligible", { repo: githubSource.repo.fullName })}</p>
+            )}
+            <div className="rehearsal">
+              <label className="force-fallback">
+                <input type="checkbox" checked={forceFallback} onChange={(event) => setForceFallback(event.target.checked)} />
+                {t("start.forceFallback")}
+              </label>
+              <button
+                type="button"
+                className="clear-cache"
+                onClick={() => {
+                  clearFilterCache();
+                  setCacheCleared(true);
+                }}
+              >
+                {t("start.clearCache")}
+              </button>
+              {cacheCleared && <span className="clear-cache__done">{t("start.clearCacheDone")}</span>}
+            </div>
           </>
         )}
         {state.screen === "beat" && (
