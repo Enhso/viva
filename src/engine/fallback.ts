@@ -2,6 +2,7 @@ import { sharedBattery } from "./battery";
 import { extractFunctions } from "./extract";
 import { generateCandidateMutants } from "./mutate";
 import { sameOutput } from "./outputs";
+import { BEATS_PER_MUTANT } from "./pacing";
 import { inferParamShapes } from "./shapes";
 import type { SandboxRunner } from "./sandbox/types";
 import { targetedSearch } from "./targeted-search";
@@ -23,6 +24,11 @@ export interface FallbackVivaRequest {
 /**
  * Fallback mode (03 §6): no model. Default edge-case inputs, the first candidate mutant (in
  * source order) whose output changes, templated wording. Works with any SandboxRunner.
+ *
+ * Ticket 16: that one mutant is asked over up to BEATS_PER_MUTANT (K) of its distinguishing
+ * inputs, taken from the front of its answer key -- never all of them, and never batched into
+ * one beat. Fallback never asks about more than this single mutant (M doesn't apply here: 03 §6
+ * fixes fallback to "the first output-changing mutant per function").
  */
 export async function runFallbackViva({ source, functionName }: FallbackVivaRequest, runner: SandboxRunner): Promise<Viva> {
   const fn = extractFunctions(source).find((candidate) => candidate.name === functionName);
@@ -37,7 +43,10 @@ export async function runFallbackViva({ source, functionName }: FallbackVivaRequ
       continue;
     }
     const mutant = { ...candidate, answerKey, taxonomyLabel: null };
-    return { mode: "fallback", beats: [{ id: `${mutant.id}#0`, function: fn, mutant, ...answerKey[0] }], drops };
+    const beats = answerKey
+      .slice(0, BEATS_PER_MUTANT)
+      .map((entry, index) => ({ id: `${mutant.id}#${index}`, function: fn, mutant, ...entry }));
+    return { mode: "fallback", beats, drops };
   }
   return { mode: "fallback", beats: [], drops };
 }
