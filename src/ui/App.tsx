@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import { extractFunctions, generateCandidateMutants, runFallbackViva, runLiveViva, type LoadedMutant, type Viva, type VivaMode } from "../engine";
+import { extractFunctions, generateCandidateMutants, runFallbackViva, runLiveViva, type Beat, type LoadedMutant, type Viva, type VivaMode } from "../engine";
 import { createWorkerRunner } from "../engine/sandbox/worker-runner";
 import { buildReport, gradeBeat, type BeatResult } from "../grading";
 import { callFilterApi } from "../llm/client";
@@ -9,7 +9,7 @@ import { ModeIndicator } from "./ModeIndicator";
 import { BeatScreen } from "./screens/BeatScreen";
 import { ReportScreen } from "./screens/ReportScreen";
 import { RevealScreen } from "./screens/RevealScreen";
-import { StartScreen } from "./screens/StartScreen";
+import { SelectionScreen } from "./screens/SelectionScreen";
 import { LanguageContext, useT } from "./strings";
 
 type ModeInfo = { mode: VivaMode; provider?: string; model?: string; reason?: string };
@@ -76,13 +76,15 @@ function VivaFlow() {
     document.title = t("app.title");
   }, [t]);
 
-  async function start(fixture: DemoFixture) {
+  async function start(fixtures: DemoFixture[]) {
     dispatch({ type: "load" });
     runner.current ??= createWorkerRunner();
     try {
-      const { viva, modeInfo } = await runViva(fixture, runner.current, forceFallback);
-      if (viva.beats.length === 0) dispatch({ type: "failed", message: t("error.noMutant", { name: fixture.functionName }), modeInfo });
-      else dispatch({ type: "loaded", viva, modeInfo });
+      const { viva, modeInfo } = await runViva(fixtures, runner.current, forceFallback);
+      if (viva.beats.length === 0) {
+        const names = fixtures.map((fixture) => fixture.functionName).join(", ");
+        dispatch({ type: "failed", message: t("error.noMutant", { name: names }), modeInfo });
+      } else dispatch({ type: "loaded", viva, modeInfo });
     } catch (error) {
       dispatch({ type: "failed", message: t("error.failed", { message: String(error) }), modeInfo: IDLE_MODE });
     }
@@ -101,7 +103,7 @@ function VivaFlow() {
               <input type="checkbox" checked={forceFallback} onChange={(event) => setForceFallback(event.target.checked)} />
               {t("start.forceFallback")}
             </label>
-            <StartScreen loading={state.loading} onStart={start} />
+            <SelectionScreen loading={state.loading} onStart={start} />
           </>
         )}
         {state.screen === "beat" && (
@@ -135,35 +137,39 @@ function VivaFlow() {
 }
 
 /**
- * Ticket 06: builds the filter request from the mechanically-generated candidates, calls the
- * filter API, and runs the viva on whatever it returns — the loaded mutants (live) or the
- * default path (fallback). The engine never imports src/llm (architecture-boundary.test.ts):
- * this orchestration lives in the UI layer instead, exactly as the ticket calls for.
+ * Ticket 06/08: builds one filter request covering every selected function (06's first
+ * criterion — the filter call must cover all selected functions in one call, which is why the
+ * selection screen hands off the whole chosen set instead of one function at a time), calls the
+ * filter API once, and runs each function's viva on whatever it returns — the loaded mutants
+ * (live) or the default path (fallback) — merging the beats into one combined Viva in
+ * complexity-score order (08's hand-off criterion: the caller already passed `fixtures` in that
+ * order). The engine never imports src/llm (architecture-boundary.test.ts): this orchestration
+ * lives in the UI layer instead, exactly as ticket 06 calls for.
  */
 async function runViva(
-  fixture: DemoFixture,
+  fixtures: DemoFixture[],
   runner: ReturnType<typeof createWorkerRunner>,
   forceFallback: boolean,
 ): Promise<{ viva: Viva; modeInfo: ModeInfo }> {
-  const fn = extractFunctions(fixture.source).find((candidate) => candidate.name === fixture.functionName);
-  if (!fn) throw new Error(`No function named ${fixture.functionName} in the given source`);
-  const candidates = generateCandidateMutants(fn);
+  const entries = fixtures.map((fixture) => {
+    const fn = extractFunctions(fixture.source).find((candidate) => candidate.name === fixture.functionName);
+    if (!fn) throw new Error(`No function named ${fixture.functionName} in the given source`);
+    return { fixture, fn, candidates: generateCandidateMutants(fn) };
+  });
 
   const request: FilterRequest = {
-    functions: [
-      {
-        functionId: fn.name,
-        name: fn.name,
-        source: fn.source,
-        docstring: fn.docstring,
-        candidates: candidates.map((candidate) => ({
-          candidateId: candidate.id,
-          rule: candidate.rule,
-          rewrite: candidate.rewrite,
-          diff: candidate.diff,
-        })),
-      },
-    ],
+    functions: entries.map(({ fn, candidates }) => ({
+      functionId: fn.name,
+      name: fn.name,
+      source: fn.source,
+      docstring: fn.docstring,
+      candidates: candidates.map((candidate) => ({
+        candidateId: candidate.id,
+        rule: candidate.rule,
+        rewrite: candidate.rewrite,
+        diff: candidate.diff,
+      })),
+    })),
   };
 
   // A network-level failure to reach the filter endpoint itself (not a provider failing) still
@@ -175,24 +181,36 @@ async function runViva(
     }),
   );
 
-  if (outcome.mode === "live") {
-    const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
-    const loadedMutants: LoadedMutant[] = loadedForFunction
-      .map((loadedCandidate) => {
-        const candidate = candidates.find((c) => c.id === loadedCandidate.candidateId);
-        return candidate ? { candidate, taxonomyLabel: loadedCandidate.label } : null;
-      })
-      .filter((entry): entry is LoadedMutant => entry !== null);
+  const beats: Beat[] = [];
+  let anyLive = false;
+  for (const { fixture, fn, candidates } of entries) {
+    if (outcome.mode === "live") {
+      const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
+      const loadedMutants: LoadedMutant[] = loadedForFunction
+        .map((loadedCandidate) => {
+          const candidate = candidates.find((c) => c.id === loadedCandidate.candidateId);
+          return candidate ? { candidate, taxonomyLabel: loadedCandidate.label } : null;
+        })
+        .filter((entry): entry is LoadedMutant => entry !== null);
 
-    const viva = await runLiveViva({ source: fixture.source, functionName: fixture.functionName }, loadedMutants, runner);
-    if (viva.beats.length > 0) {
-      return { viva, modeInfo: { mode: "live", provider: outcome.provider, model: outcome.model } };
+      const liveViva = await runLiveViva({ source: fixture.source, functionName: fixture.functionName }, loadedMutants, runner);
+      if (liveViva.beats.length > 0) {
+        beats.push(...liveViva.beats);
+        anyLive = true;
+        continue;
+      }
+      // Every loaded mutant of this function turned out equivalent (03 §2 hands off surviving
+      // mutants only) — fall back for this function alone rather than leave it with nothing.
     }
-    // Every loaded mutant turned out equivalent (03 §2 hands off surviving mutants only) — fall
-    // back rather than leave the student with nothing to answer.
+    const fallbackViva = await runFallbackViva({ source: fixture.source, functionName: fixture.functionName }, runner);
+    beats.push(...fallbackViva.beats);
   }
 
-  const viva = await runFallbackViva({ source: fixture.source, functionName: fixture.functionName }, runner);
-  const reason = outcome.mode === "fallback" ? outcome.reason : "no loaded mutant of the selected function changed its output";
-  return { viva, modeInfo: { mode: "fallback", reason } };
+  const mode: VivaMode = anyLive ? "live" : "fallback";
+  const reason = outcome.mode === "fallback" ? outcome.reason : "no loaded mutant of the selected functions changed its output";
+  const modeInfo: ModeInfo =
+    mode === "live" && outcome.mode === "live"
+      ? { mode: "live", provider: outcome.provider, model: outcome.model }
+      : { mode: "fallback", reason };
+  return { viva: { mode, beats }, modeInfo };
 }

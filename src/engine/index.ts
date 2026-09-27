@@ -3,6 +3,8 @@
 export { extractFunctions, scanFunctions, type RejectedFunction } from "./extract";
 export { type ScopeViolation } from "./scope";
 export { generateCandidateMutants } from "./mutate";
+export { complexityScore, orderByComplexity, type OrderedFunction } from "./complexity";
+export { BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION, estimateBeatCount } from "./pacing";
 export { sharedBattery } from "./battery";
 export { renderCall, renderOutput, sameOutput, type CanonicalRendering } from "./outputs";
 export { runFallbackViva, type FallbackVivaRequest } from "./fallback";

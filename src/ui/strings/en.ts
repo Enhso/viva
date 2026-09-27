@@ -24,6 +24,17 @@ export const en = {
   "start.rejected.heading": "Excluded from this corpus",
   "start.rejected.reason": "Excluded: {reason}",
 
+  "selection.heading": "Choose your functions",
+  "selection.n.label": "Functions to include: {n} of {total}",
+  "selection.complexity": "Complexity score: {score}",
+  "selection.cutoff": "↑ included in this viva (top {n}) — not included below ↓",
+  "selection.cutoffAll": "↑ every eligible function is included ↓",
+  "selection.help.heading": "How long will this be?",
+  "selection.help.body":
+    "Two dials set viva length: how many functions you include (N), and how many mutants and beats each function contributes (about {mutantsPerFunction} mutants per function, {beatsPerMutant} beats per mutant). At N={n}, expect roughly {estimate} beats.",
+  "selection.help.provisional": "The mutants-per-function and beats-per-mutant figures are placeholders, not final.",
+  "selection.begin": "Start viva with these {n} functions",
+
   "beat.question": "{call} → ?",
   "beat.prediction.label": "Your prediction",
   "beat.prediction.hint": "A JavaScript value: 42, \"text\", true, null.",
@@ -47,7 +58,7 @@ export const en = {
   "report.bucket.uncertain-right": "Uncertain & right",
   "report.bucket.uncertain-wrong": "Uncertain & wrong",
   "report.change": "Change: {from} → {to} ({rule})",
-  "report.noLabel": "No misconception label: fallback mode calls no model.",
+  "report.noLabel": "No taxonomy label: fallback mode calls no model.",
   "report.fact": "{call}: answered {answered}, correct answer was {correctAnswer}, confidence was {confidence}%.",
   "report.restart": "Start again",
 
