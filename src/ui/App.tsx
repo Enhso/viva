@@ -12,7 +12,17 @@ import { RevealScreen } from "./screens/RevealScreen";
 import { SelectionScreen } from "./screens/SelectionScreen";
 import { LanguageContext, useT } from "./strings";
 
-type ModeInfo = { mode: VivaMode; provider?: string; model?: string; reason?: string };
+type ModeInfo = {
+  mode: VivaMode;
+  provider?: string;
+  model?: string;
+  reason?: string;
+  /**
+   * Live only: functions that fell back inside a live viva (every loaded mutant was equivalent).
+   * Their beats show the fallback strip, since fallback is labelled wherever it appears (09 §4).
+   */
+  fallback?: { functionNames: string[]; reason: string };
+};
 
 type State =
   | { screen: "start"; loading: boolean }
@@ -53,7 +63,15 @@ function reduce(state: State, action: Action): State {
 }
 
 function currentModeInfo(state: State): ModeInfo {
-  return state.screen === "start" ? IDLE_MODE : state.modeInfo;
+  if (state.screen === "start") return IDLE_MODE;
+  const { modeInfo } = state;
+  if (modeInfo.fallback && (state.screen === "beat" || state.screen === "reveal")) {
+    const beat = state.viva.beats[state.screen === "beat" ? state.results.length : state.results.length - 1];
+    if (beat && modeInfo.fallback.functionNames.includes(beat.function.name)) {
+      return { mode: "fallback", reason: modeInfo.fallback.reason };
+    }
+  }
+  return modeInfo;
 }
 
 export default function App() {
@@ -183,6 +201,7 @@ async function runViva(
 
   const beats: Beat[] = [];
   let anyLive = false;
+  const fellBack: string[] = [];
   for (const { fixture, fn, candidates } of entries) {
     if (outcome.mode === "live") {
       const loadedForFunction = outcome.result.loaded.filter((c) => c.functionId === fn.name);
@@ -201,16 +220,23 @@ async function runViva(
       }
       // Every loaded mutant of this function turned out equivalent (03 §2 hands off surviving
       // mutants only) — fall back for this function alone rather than leave it with nothing.
+      fellBack.push(fn.name);
     }
     const fallbackViva = await runFallbackViva({ source: fixture.source, functionName: fixture.functionName }, runner);
     beats.push(...fallbackViva.beats);
   }
 
   const mode: VivaMode = anyLive ? "live" : "fallback";
-  const reason = outcome.mode === "fallback" ? outcome.reason : "no loaded mutant of the selected functions changed its output";
+  const equivalentReason = "no loaded mutant of this function changed its output";
+  const reason = outcome.mode === "fallback" ? outcome.reason : equivalentReason;
   const modeInfo: ModeInfo =
     mode === "live" && outcome.mode === "live"
-      ? { mode: "live", provider: outcome.provider, model: outcome.model }
+      ? {
+          mode: "live",
+          provider: outcome.provider,
+          model: outcome.model,
+          fallback: fellBack.length > 0 ? { functionNames: fellBack, reason: equivalentReason } : undefined,
+        }
       : { mode: "fallback", reason };
   return { viva: { mode, beats }, modeInfo };
 }
