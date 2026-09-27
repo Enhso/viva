@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
-    "filter-lab": "tsx scripts/filter-lab.ts"
+    "filter-lab": "tsx scripts/filter-lab.ts",
+    "check:api": "tsc -p tsconfig.api.json"
   },
   "dependencies": {
     "acorn": "^8.18.0",
@@ -27,5 +28,8 @@
     "typescript": "^5.5.3",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

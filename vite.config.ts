@@ -59,5 +59,6 @@ export default defineConfig({
   plugins: [react(), vercelApiInDev()],
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "api/**/*.test.ts"],
+    setupFiles: ["src/test-setup.ts"],
   },
 });
