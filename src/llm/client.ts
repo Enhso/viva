@@ -2,6 +2,7 @@
 // keys. Never talks to a provider directly — the browser has no API keys.
 import { buildFilterCacheKey } from "./cache-key";
 import { readCachedFilterResult, writeCachedFilterResult } from "./filter-cache-store";
+import type { LabelGroupingResult } from "./label-grouping";
 import type { FilterApiResponse, FilterMetaApiResponse, FilterOutcome, FilterRequest } from "./types";
 
 export interface CallFilterApiOptions {
@@ -70,4 +71,21 @@ export async function callFilterApiCached(request: FilterRequest, options: CallF
     }
   }
   return outcome;
+}
+
+/**
+ * Browser side of the label-grouping call (07 §6, ticket 22): posts this viva's distinct
+ * taxonomy labels to the serverless function that holds the Jev/embedding keys, and gets back
+ * which mechanism grouped them. Called once, after the last beat, before the report renders
+ * (App.tsx); a network failure here just means the report renders ungrouped (exact-text) rather
+ * than a broken viva -- the caller's own catch handles that, mirroring `callFilterApi`.
+ */
+export async function callGroupLabelsApi(labels: string[]): Promise<LabelGroupingResult> {
+  const res = await fetch("/api/group-labels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ labels }),
+  });
+  if (!res.ok) throw new Error(`group-labels API returned ${res.status}`);
+  return (await res.json()) as LabelGroupingResult;
 }
