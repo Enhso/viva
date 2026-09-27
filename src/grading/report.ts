@@ -1,5 +1,10 @@
 import { renderCall, renderOutput, type MutationRule } from "../engine";
+import { describeOutput, translate } from "../ui/strings";
 import { CALIBRATION_BUCKETS, type BeatResult, type CalibrationBucket } from "./grade";
+
+// Tier 1 report text is generated ahead of the language layer (ticket 24), which threads a
+// selected language through the report; fixed to "en" here in the meantime.
+const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate("en", key, vars);
 
 /** One beat in the report. Every field is Tier 1 (computed by execution) except taxonomyLabel. */
 export interface ReportEntry {
@@ -28,7 +33,7 @@ export function buildReport(results: BeatResult[]): Report {
     taxonomyLabel: beat.mutant.taxonomyLabel,
     call: renderCall(beat.function.name, beat.input),
     answered: prediction.trim(),
-    correctAnswer: renderOutput(beat.mutantOutput),
+    correctAnswer: describeOutput(renderOutput(beat.mutantOutput), t),
     confidence,
   }));
   return { bucketCounts, entries };

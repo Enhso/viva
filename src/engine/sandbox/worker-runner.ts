@@ -10,10 +10,13 @@ interface SandboxWorker {
 
 function spawn(): SandboxWorker {
   const worker = new Worker(new URL("./sandbox.worker.ts", import.meta.url), { type: "module" });
-  const ready = new Promise<void>((resolve) => {
+  const ready = new Promise<void>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (event.data.type === "ready") resolve();
     };
+    // A worker that fails to load (bad URL, syntax error in the worker script itself) never
+    // sends "ready" — without this, `run` would wait on it forever instead of timing out.
+    worker.onerror = (event) => reject(new Error(event.message || "sandbox worker failed to load"));
   });
   return { worker, ready };
 }
@@ -29,7 +32,14 @@ export function createWorkerRunner({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}): San
 
   async function runOne(request: RunRequest): Promise<RunOutcome> {
     const { worker, ready } = current;
-    await ready;
+    try {
+      await ready;
+    } catch {
+      // The worker that failed to load is still `current`; replace it so the next run gets a
+      // fresh attempt instead of repeating the same failure.
+      current = spawn();
+      return { kind: "threw", errorName: "WorkerLoadError" };
+    }
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         worker.terminate();
@@ -40,6 +50,12 @@ export function createWorkerRunner({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}): San
         if (event.data.type !== "result") return;
         clearTimeout(timer);
         resolve(event.data.outcome);
+      };
+      worker.onerror = () => {
+        clearTimeout(timer);
+        worker.terminate();
+        current = spawn();
+        resolve({ kind: "threw", errorName: "WorkerLoadError" });
       };
       worker.postMessage(request);
     });
