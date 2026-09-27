@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runFallbackViva } from "./index";
+import { sameOutput } from "./outputs";
 import { BEATS_PER_MUTANT } from "./pacing";
 import { createNodeRunner } from "./sandbox/node-runner";
 
@@ -37,5 +38,35 @@ describe("fallback viva on the sumRange fixture", () => {
     expect(viva.beats[1].input).toEqual([5, 5]);
     expect(viva.beats[1].mutantOutput).toEqual({ kind: "returned", value: 5 });
     expect(viva.beats[1].originalOutput).toEqual({ kind: "returned", value: 0 });
+  });
+
+  // Ticket 18: every beat records a format, decided when the beat is built.
+  it("gives every beat a format, free-text or multiple-choice", async () => {
+    const viva = await runFallbackViva({ source: sumRangeSource, functionName: "sumRange" }, createNodeRunner());
+
+    for (const beat of viva.beats) {
+      expect(["free-text", "multiple-choice"]).toContain(beat.format);
+    }
+  });
+
+  // Ticket 18 (05 §4): a multiple-choice beat's options hold the correct output plus real,
+  // pairwise-distinct distractors, and correctOptionIndex actually points at the mutant's output.
+  it("builds valid multiple-choice options whenever a beat lands on that format", async () => {
+    const viva = await runFallbackViva({ source: sumRangeSource, functionName: "sumRange" }, createNodeRunner());
+    const mcqBeats = viva.beats.filter((beat) => beat.format === "multiple-choice");
+    expect(mcqBeats.length).toBeGreaterThan(0); // this fixture's fixed seed lands at least one here
+
+    for (const beat of mcqBeats) {
+      expect(beat.options).toBeDefined();
+      expect(beat.correctOptionIndex).toBeDefined();
+      const options = beat.options!;
+      expect(options[beat.correctOptionIndex!]).toEqual(beat.mutantOutput);
+      expect(options.length).toBeGreaterThanOrEqual(2);
+      for (let i = 0; i < options.length; i++) {
+        for (let j = i + 1; j < options.length; j++) {
+          expect(sameOutput(options[i], options[j])).toBe(false);
+        }
+      }
+    }
   });
 });

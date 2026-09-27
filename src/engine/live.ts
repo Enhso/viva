@@ -1,7 +1,10 @@
 import { extractFunctions } from "./extract";
 import { EQUIVALENT_DROP_REASON, findDistinguishingInputs } from "./fallback";
+import { generateCandidateMutants } from "./mutate";
+import { buildBeatsForMutant, MULTIPLE_CHOICE_SEED } from "./multiple-choice";
 import { sharedBattery } from "./battery";
 import { BEATS_PER_MUTANT, MUTANTS_PER_FUNCTION } from "./pacing";
+import { createPrng } from "./prng";
 import type { SandboxRunner } from "./sandbox/types";
 import type { Beat, CandidateMutant, EquivalentDrop, SurvivingMutant, Viva } from "./types";
 
@@ -43,6 +46,12 @@ export async function runLiveViva(
   const battery = sharedBattery(fn);
   const beats: Beat[] = [];
   const drops: EquivalentDrop[] = [];
+  // Ticket 18's distractors need every candidate mutant's output on a beat's input, including
+  // non-surviving ones (the filter call only hands back loaded mutants), so the full candidate
+  // list is regenerated here from `fn` -- the same deterministic rule engine fallback.ts already
+  // draws on, not something loadedMutants alone can supply.
+  const allCandidates = generateCandidateMutants(fn);
+  const random = createPrng(MULTIPLE_CHOICE_SEED);
   let mutantsAsked = 0;
   for (const { candidate, taxonomyLabel } of loadedMutants) {
     if (mutantsAsked >= MUTANTS_PER_FUNCTION) break;
@@ -52,9 +61,8 @@ export async function runLiveViva(
       continue;
     }
     const mutant: SurvivingMutant = { ...candidate, answerKey, taxonomyLabel };
-    answerKey
-      .slice(0, BEATS_PER_MUTANT)
-      .forEach((entry, index) => beats.push({ id: `${mutant.id}#${index}`, function: fn, mutant, ...entry }));
+    const otherCandidates = allCandidates.filter((other) => other.id !== candidate.id);
+    beats.push(...(await buildBeatsForMutant(fn, mutant, answerKey.slice(0, BEATS_PER_MUTANT), otherCandidates, runner, random)));
     mutantsAsked++;
   }
   return { mode: "live", beats, drops };

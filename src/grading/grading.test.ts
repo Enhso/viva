@@ -46,10 +46,12 @@ describe("gradeBeat", () => {
     expect(() => gradeBeat(beat, "3", NaN)).toThrow(RangeError);
   });
 
-  // Ticket 16: multiple choice is ticket 18's; for now every beat is asked and recorded as
-  // free text, so the report and ticket 18/19 have a field to read instead of assuming.
-  it("records the answer format, free text for now", () => {
-    expect(gradeBeat(beat, "3", 80).format).toBe("free-text");
+  // Ticket 18: the format is decided when the beat is built (engine/multiple-choice.ts);
+  // gradeBeat just reads whatever the beat says, for both formats.
+  it("records the beat's own answer format", () => {
+    expect(gradeBeat(beat, "3", 80).format).toBe(beat.format);
+    const mcqBeat = { ...beat, format: "multiple-choice" as const };
+    expect(gradeBeat(mcqBeat, "3", 80).format).toBe("multiple-choice");
   });
 
   it("records how the prediction was read", () => {
